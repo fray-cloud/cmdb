@@ -1,0 +1,22 @@
+services:
+  ipam:
+    build:
+      context: ../../
+      dockerfile: services/ipam/Dockerfile.dev
+    volumes:
+      - ../../services/ipam/src:/app/services/ipam/src
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_ipam
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cmdb-network

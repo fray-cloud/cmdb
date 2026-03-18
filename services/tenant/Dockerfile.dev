@@ -1,0 +1,5 @@
+FROM cmdb-base:dev
+COPY services/tenant/pyproject.toml ./services/tenant/pyproject.toml
+RUN uv sync --frozen --package cmdb-tenant
+EXPOSE 8000
+CMD ["uv", "run", "--package", "cmdb-tenant", "uvicorn", "tenant.interface.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

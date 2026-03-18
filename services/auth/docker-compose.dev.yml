@@ -1,0 +1,22 @@
+services:
+  auth:
+    build:
+      context: ../../
+      dockerfile: services/auth/Dockerfile.dev
+    volumes:
+      - ../../services/auth/src:/app/services/auth/src
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_auth
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cmdb-network
