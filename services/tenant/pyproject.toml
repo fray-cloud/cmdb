@@ -7,6 +7,10 @@ dependencies = [
     "cmdb-shared",
     "fastapi>=0.115",
     "uvicorn",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg",
+    "alembic",
+    "pydantic-settings>=2.0",
 ]
 
 [build-system]
