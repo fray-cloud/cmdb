@@ -85,6 +85,11 @@ def create_app() -> FastAPI:
     async def jwks() -> dict:
         return app.state.jwt_service.get_jwks()
 
+    # Health check
+    @app.get("/health", include_in_schema=False)
+    async def health() -> dict:
+        return {"status": "ok"}
+
     return app
 
 

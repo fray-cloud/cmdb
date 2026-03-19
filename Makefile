@@ -1,5 +1,5 @@
 .PHONY: dev-up dev-down dev-logs dev-build prod-up prod-down prod-build \
-       lint format test db-shell kafka-shell redis-shell clean dev-keygen
+       lint format test db-shell kafka-shell redis-shell clean dev-keygen dev-cert
 
 # Dev environment
 dev-up:
@@ -45,6 +45,15 @@ kafka-shell:
 
 redis-shell:
 	docker compose -f docker-compose.dev.yml exec redis redis-cli
+
+dev-cert:
+	@mkdir -p infrastructure/nginx/ssl
+	openssl req -x509 -nodes -days 365 \
+		-newkey rsa:2048 \
+		-keyout infrastructure/nginx/ssl/key.pem \
+		-out infrastructure/nginx/ssl/cert.pem \
+		-subj "/CN=localhost"
+	@echo "SSL certificates generated in infrastructure/nginx/ssl/"
 
 dev-keygen:
 	@mkdir -p keys

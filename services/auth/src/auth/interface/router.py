@@ -229,6 +229,18 @@ async def logout(
     await command_bus.dispatch(LogoutCommand(refresh_token=body.refresh_token))
 
 
+@auth_router.get("/validate", status_code=status.HTTP_200_OK, include_in_schema=False)
+async def validate(
+    current_user: dict = Depends(get_current_user),  # noqa: B008
+) -> None:
+    from fastapi.responses import Response
+
+    response = Response(status_code=200)
+    response.headers["X-User-ID"] = str(current_user["user_id"])
+    response.headers["X-Tenant-ID"] = str(current_user["tenant_id"])
+    return response
+
+
 # =============================================================================
 # User Router (authenticated endpoints)
 # =============================================================================

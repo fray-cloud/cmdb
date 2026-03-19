@@ -50,6 +50,9 @@ docker-compose.override.yml
 # RSA keys
 keys/
 
+# SSL certificates
+infrastructure/nginx/ssl/
+
 # Logs
 *.log
 npm-debug.log*
