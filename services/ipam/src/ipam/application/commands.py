@@ -228,3 +228,38 @@ class UpdateFHRPGroupCommand(Command):
 
 class DeleteFHRPGroupCommand(Command):
     fhrp_group_id: UUID
+
+
+# --- Bulk Operations ---
+
+
+class BulkCreatePrefixesCommand(Command):
+    items: list[CreatePrefixCommand]
+
+
+class BulkCreateIPAddressesCommand(Command):
+    items: list[CreateIPAddressCommand]
+
+
+class BulkCreateVRFsCommand(Command):
+    items: list[CreateVRFCommand]
+
+
+class BulkCreateVLANsCommand(Command):
+    items: list[CreateVLANCommand]
+
+
+class BulkCreateIPRangesCommand(Command):
+    items: list[CreateIPRangeCommand]
+
+
+class BulkCreateRIRsCommand(Command):
+    items: list[CreateRIRCommand]
+
+
+class BulkCreateASNsCommand(Command):
+    items: list[CreateASNCommand]
+
+
+class BulkCreateFHRPGroupsCommand(Command):
+    items: list[CreateFHRPGroupCommand]

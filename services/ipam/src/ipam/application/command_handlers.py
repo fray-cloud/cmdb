@@ -3,6 +3,14 @@ from __future__ import annotations
 from uuid import UUID
 
 from ipam.application.commands import (
+    BulkCreateASNsCommand,
+    BulkCreateFHRPGroupsCommand,
+    BulkCreateIPAddressesCommand,
+    BulkCreateIPRangesCommand,
+    BulkCreatePrefixesCommand,
+    BulkCreateRIRsCommand,
+    BulkCreateVLANsCommand,
+    BulkCreateVRFsCommand,
     ChangeIPAddressStatusCommand,
     ChangeIPRangeStatusCommand,
     ChangePrefixStatusCommand,
@@ -896,3 +904,278 @@ class DeleteFHRPGroupHandler(CommandHandler[None]):
         await self._event_store.append(group.id, new_events, expected_version=group.version - len(new_events))
         await self._read_model_repo.mark_deleted(group.id)
         await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# Bulk Operations
+# ---------------------------------------------------------------------------
+
+
+class BulkCreatePrefixesHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: PrefixReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreatePrefixesCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            prefix = Prefix.create(
+                network=item.network,
+                vrf_id=item.vrf_id,
+                vlan_id=item.vlan_id,
+                status=PrefixStatus(item.status),
+                role=item.role,
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = prefix.collect_uncommitted_events()
+            await self._event_store.append(prefix.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(prefix)
+            all_events.extend(events)
+            results.append(prefix.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateIPAddressesHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPAddressReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateIPAddressesCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            if await self._read_model_repo.exists_in_vrf(item.address, item.vrf_id):
+                raise ConflictError(f"IP address {item.address} already exists in this VRF scope")
+
+            ip = IPAddress.create(
+                address=item.address,
+                vrf_id=item.vrf_id,
+                status=IPAddressStatus(item.status),
+                dns_name=item.dns_name,
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = ip.collect_uncommitted_events()
+            await self._event_store.append(ip.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(ip)
+            all_events.extend(events)
+            results.append(ip.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateVRFsHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VRFReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateVRFsCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            vrf = VRF.create(
+                name=item.name,
+                rd=item.rd,
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = vrf.collect_uncommitted_events()
+            await self._event_store.append(vrf.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(vrf)
+            all_events.extend(events)
+            results.append(vrf.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateVLANsHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateVLANsCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            vlan = VLAN.create(
+                vid=item.vid,
+                name=item.name,
+                group_id=item.group_id,
+                status=VLANStatus(item.status),
+                role=item.role,
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = vlan.collect_uncommitted_events()
+            await self._event_store.append(vlan.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(vlan)
+            all_events.extend(events)
+            results.append(vlan.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateIPRangesHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPRangeReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateIPRangesCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            ip_range = IPRange.create(
+                start_address=item.start_address,
+                end_address=item.end_address,
+                vrf_id=item.vrf_id,
+                status=IPRangeStatus(item.status),
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = ip_range.collect_uncommitted_events()
+            await self._event_store.append(ip_range.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(ip_range)
+            all_events.extend(events)
+            results.append(ip_range.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateRIRsHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RIRReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateRIRsCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            rir = RIR.create(
+                name=item.name,
+                is_private=item.is_private,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = rir.collect_uncommitted_events()
+            await self._event_store.append(rir.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(rir)
+            all_events.extend(events)
+            results.append(rir.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateASNsHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ASNReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateASNsCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            asn = ASN.create(
+                asn=item.asn,
+                rir_id=item.rir_id,
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = asn.collect_uncommitted_events()
+            await self._event_store.append(asn.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(asn)
+            all_events.extend(events)
+            results.append(asn.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateFHRPGroupsHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: FHRPGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateFHRPGroupsCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            group = FHRPGroup.create(
+                protocol=FHRPProtocol(item.protocol),
+                group_id_value=item.group_id_value,
+                auth_type=FHRPAuthType(item.auth_type),
+                auth_key=item.auth_key,
+                name=item.name,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = group.collect_uncommitted_events()
+            await self._event_store.append(group.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(group)
+            all_events.extend(events)
+            results.append(group.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results

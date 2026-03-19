@@ -1,0 +1,128 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Request, status
+
+from ipam.application.command_handlers import (
+    BulkCreateRIRsHandler,
+    CreateRIRHandler,
+    DeleteRIRHandler,
+    UpdateRIRHandler,
+)
+from ipam.application.commands import (
+    BulkCreateRIRsCommand,
+    CreateRIRCommand,
+    DeleteRIRCommand,
+    UpdateRIRCommand,
+)
+from ipam.application.queries import GetRIRQuery, ListRIRsQuery
+from ipam.application.query_handlers import GetRIRHandler, ListRIRsHandler
+from ipam.infrastructure.read_model_repository import PostgresRIRReadModelRepository
+from ipam.interface.schemas import (
+    BulkCreateResponse,
+    CreateRIRRequest,
+    RIRListResponse,
+    RIRResponse,
+    UpdateRIRRequest,
+)
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
+
+router = APIRouter(prefix="/rirs", tags=["rirs"])
+
+
+def _get_command_bus(request: Request) -> CommandBus:
+    session = request.app.state.database.session()
+    read_model_repo = PostgresRIRReadModelRepository(session)
+    event_store = request.app.state.event_store
+    event_producer = request.app.state.event_producer
+
+    bus = CommandBus()
+    bus.register(CreateRIRCommand, CreateRIRHandler(event_store, read_model_repo, event_producer))
+    bus.register(UpdateRIRCommand, UpdateRIRHandler(event_store, read_model_repo, event_producer))
+    bus.register(DeleteRIRCommand, DeleteRIRHandler(event_store, read_model_repo, event_producer))
+    bus.register(
+        BulkCreateRIRsCommand,
+        BulkCreateRIRsHandler(event_store, read_model_repo, event_producer),
+    )
+    return bus
+
+
+def _get_query_bus(request: Request) -> QueryBus:
+    session = request.app.state.database.session()
+    read_model_repo = PostgresRIRReadModelRepository(session)
+
+    bus = QueryBus()
+    bus.register(GetRIRQuery, GetRIRHandler(read_model_repo))
+    bus.register(ListRIRsQuery, ListRIRsHandler(read_model_repo))
+    return bus
+
+
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    response_model=RIRResponse,
+)
+async def create_rir(
+    body: CreateRIRRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> RIRResponse:
+    rir_id = await command_bus.dispatch(CreateRIRCommand(**body.model_dump()))
+    result = await query_bus.dispatch(GetRIRQuery(rir_id=rir_id))
+    return RIRResponse(**result.model_dump())
+
+
+@router.get("", response_model=RIRListResponse)
+async def list_rirs(
+    params: OffsetParams = Depends(),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> RIRListResponse:
+    items, total = await query_bus.dispatch(ListRIRsQuery(offset=params.offset, limit=params.limit))
+    return RIRListResponse(
+        items=[RIRResponse(**i.model_dump()) for i in items],
+        total=total,
+        offset=params.offset,
+        limit=params.limit,
+    )
+
+
+@router.get("/{rir_id}", response_model=RIRResponse)
+async def get_rir(
+    rir_id: UUID,
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> RIRResponse:
+    result = await query_bus.dispatch(GetRIRQuery(rir_id=rir_id))
+    return RIRResponse(**result.model_dump())
+
+
+@router.patch("/{rir_id}", response_model=RIRResponse)
+async def update_rir(
+    rir_id: UUID,
+    body: UpdateRIRRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> RIRResponse:
+    await command_bus.dispatch(UpdateRIRCommand(rir_id=rir_id, **body.model_dump(exclude_unset=True)))
+    result = await query_bus.dispatch(GetRIRQuery(rir_id=rir_id))
+    return RIRResponse(**result.model_dump())
+
+
+@router.delete("/{rir_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_rir(
+    rir_id: UUID,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> None:
+    await command_bus.dispatch(DeleteRIRCommand(rir_id=rir_id))
+
+
+@router.post(
+    "/bulk",
+    status_code=status.HTTP_201_CREATED,
+    response_model=BulkCreateResponse,
+)
+async def bulk_create_rirs(
+    body: list[CreateRIRRequest],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkCreateResponse:
+    ids = await command_bus.dispatch(BulkCreateRIRsCommand(items=[CreateRIRCommand(**i.model_dump()) for i in body]))
+    return BulkCreateResponse(ids=ids, count=len(ids))
