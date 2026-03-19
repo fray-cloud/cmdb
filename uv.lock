@@ -316,15 +316,25 @@ name = "cmdb-event"
 version = "0.1.0"
 source = { editable = "services/event" }
 dependencies = [
+    { name = "aiokafka" },
+    { name = "alembic" },
+    { name = "asyncpg" },
     { name = "cmdb-shared" },
     { name = "fastapi" },
+    { name = "pydantic-settings" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "aiokafka" },
+    { name = "alembic" },
+    { name = "asyncpg" },
     { name = "cmdb-shared", editable = "shared" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "pydantic-settings", specifier = ">=2.0" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "uvicorn" },
 ]
 
