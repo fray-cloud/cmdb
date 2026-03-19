@@ -18,3 +18,7 @@ packages = ["src/ipam"]
 
 [tool.uv.sources]
 cmdb-shared = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

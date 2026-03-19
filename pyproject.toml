@@ -10,3 +10,6 @@ members = ["services/*", "shared"]
 [dependency-groups]
 dev = ["ruff", "pytest", "pytest-asyncio", "pre-commit"]
 
+[tool.ruff.lint]
+ignore = ["N802"]
+

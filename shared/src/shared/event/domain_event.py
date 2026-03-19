@@ -14,8 +14,9 @@ class DomainEvent(BaseModel):
     version: int
     event_type: str = ""
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        super().__init_subclass__(**kwargs)
+    @classmethod
+    def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
+        super().__pydantic_init_subclass__(**kwargs)
         if "event_type" in cls.model_fields:
             cls.model_fields["event_type"].default = f"{cls.__module__}.{cls.__qualname__}"
             cls.model_rebuild(force=True)
