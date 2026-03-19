@@ -1,0 +1,898 @@
+from __future__ import annotations
+
+from uuid import UUID
+
+from ipam.application.commands import (
+    ChangeIPAddressStatusCommand,
+    ChangeIPRangeStatusCommand,
+    ChangePrefixStatusCommand,
+    ChangeVLANStatusCommand,
+    CreateASNCommand,
+    CreateFHRPGroupCommand,
+    CreateIPAddressCommand,
+    CreateIPRangeCommand,
+    CreatePrefixCommand,
+    CreateRIRCommand,
+    CreateVLANCommand,
+    CreateVRFCommand,
+    DeleteASNCommand,
+    DeleteFHRPGroupCommand,
+    DeleteIPAddressCommand,
+    DeleteIPRangeCommand,
+    DeletePrefixCommand,
+    DeleteRIRCommand,
+    DeleteVLANCommand,
+    DeleteVRFCommand,
+    UpdateASNCommand,
+    UpdateFHRPGroupCommand,
+    UpdateIPAddressCommand,
+    UpdateIPRangeCommand,
+    UpdatePrefixCommand,
+    UpdateRIRCommand,
+    UpdateVLANCommand,
+    UpdateVRFCommand,
+)
+from ipam.application.read_model import (
+    ASNReadModelRepository,
+    FHRPGroupReadModelRepository,
+    IPAddressReadModelRepository,
+    IPRangeReadModelRepository,
+    PrefixReadModelRepository,
+    RIRReadModelRepository,
+    VLANReadModelRepository,
+    VRFReadModelRepository,
+)
+from ipam.domain.asn import ASN
+from ipam.domain.fhrp_group import FHRPGroup
+from ipam.domain.ip_address import IPAddress
+from ipam.domain.ip_range import IPRange
+from ipam.domain.prefix import Prefix
+from ipam.domain.rir import RIR
+from ipam.domain.value_objects import (
+    FHRPAuthType,
+    FHRPProtocol,
+    IPAddressStatus,
+    IPRangeStatus,
+    PrefixStatus,
+    VLANStatus,
+)
+from ipam.domain.vlan import VLAN
+from ipam.domain.vrf import VRF
+from shared.cqrs.command import CommandHandler
+from shared.domain.exceptions import ConflictError, EntityNotFoundError
+from shared.event.pg_store import PostgresEventStore
+from shared.messaging.producer import KafkaEventProducer
+
+# ---------------------------------------------------------------------------
+# Prefix
+# ---------------------------------------------------------------------------
+
+
+class CreatePrefixHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: PrefixReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreatePrefixCommand) -> UUID:
+        prefix = Prefix.create(
+            network=command.network,
+            vrf_id=command.vrf_id,
+            vlan_id=command.vlan_id,
+            status=PrefixStatus(command.status),
+            role=command.role,
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = prefix.collect_uncommitted_events()
+        await self._event_store.append(prefix.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(prefix)
+        await self._event_producer.publish_many("ipam.events", events)
+        return prefix.id
+
+
+class UpdatePrefixHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: PrefixReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdatePrefixCommand) -> None:
+        stream = await self._event_store.load_stream(command.prefix_id)
+        if not stream:
+            raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
+        prefix = Prefix(aggregate_id=command.prefix_id)
+        prefix.load_from_history(stream)
+
+        prefix.update(
+            description=command.description,
+            role=command.role,
+            tenant_id=command.tenant_id,
+            vlan_id=command.vlan_id,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = prefix.collect_uncommitted_events()
+        await self._event_store.append(prefix.id, new_events, expected_version=prefix.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(prefix)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class ChangePrefixStatusHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: PrefixReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: ChangePrefixStatusCommand) -> None:
+        stream = await self._event_store.load_stream(command.prefix_id)
+        if not stream:
+            raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
+        prefix = Prefix(aggregate_id=command.prefix_id)
+        prefix.load_from_history(stream)
+
+        prefix.change_status(PrefixStatus(command.status))
+
+        new_events = prefix.collect_uncommitted_events()
+        await self._event_store.append(prefix.id, new_events, expected_version=prefix.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(prefix)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeletePrefixHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: PrefixReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeletePrefixCommand) -> None:
+        stream = await self._event_store.load_stream(command.prefix_id)
+        if not stream:
+            raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
+        prefix = Prefix(aggregate_id=command.prefix_id)
+        prefix.load_from_history(stream)
+
+        prefix.delete()
+
+        new_events = prefix.collect_uncommitted_events()
+        await self._event_store.append(prefix.id, new_events, expected_version=prefix.version - len(new_events))
+        await self._read_model_repo.mark_deleted(prefix.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# IPAddress
+# ---------------------------------------------------------------------------
+
+
+class CreateIPAddressHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPAddressReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateIPAddressCommand) -> UUID:
+        if await self._read_model_repo.exists_in_vrf(command.address, command.vrf_id):
+            raise ConflictError(f"IP address {command.address} already exists in this VRF scope")
+
+        ip = IPAddress.create(
+            address=command.address,
+            vrf_id=command.vrf_id,
+            status=IPAddressStatus(command.status),
+            dns_name=command.dns_name,
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = ip.collect_uncommitted_events()
+        await self._event_store.append(ip.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(ip)
+        await self._event_producer.publish_many("ipam.events", events)
+        return ip.id
+
+
+class UpdateIPAddressHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPAddressReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateIPAddressCommand) -> None:
+        stream = await self._event_store.load_stream(command.ip_id)
+        if not stream:
+            raise EntityNotFoundError(f"IP address {command.ip_id} not found")
+        ip = IPAddress(aggregate_id=command.ip_id)
+        ip.load_from_history(stream)
+
+        ip.update(
+            dns_name=command.dns_name,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = ip.collect_uncommitted_events()
+        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(ip)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class ChangeIPAddressStatusHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPAddressReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: ChangeIPAddressStatusCommand) -> None:
+        stream = await self._event_store.load_stream(command.ip_id)
+        if not stream:
+            raise EntityNotFoundError(f"IP address {command.ip_id} not found")
+        ip = IPAddress(aggregate_id=command.ip_id)
+        ip.load_from_history(stream)
+
+        ip.change_status(IPAddressStatus(command.status))
+
+        new_events = ip.collect_uncommitted_events()
+        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(ip)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteIPAddressHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPAddressReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteIPAddressCommand) -> None:
+        stream = await self._event_store.load_stream(command.ip_id)
+        if not stream:
+            raise EntityNotFoundError(f"IP address {command.ip_id} not found")
+        ip = IPAddress(aggregate_id=command.ip_id)
+        ip.load_from_history(stream)
+
+        ip.delete()
+
+        new_events = ip.collect_uncommitted_events()
+        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events))
+        await self._read_model_repo.mark_deleted(ip.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# VRF
+# ---------------------------------------------------------------------------
+
+
+class CreateVRFHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VRFReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateVRFCommand) -> UUID:
+        vrf = VRF.create(
+            name=command.name,
+            rd=command.rd,
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = vrf.collect_uncommitted_events()
+        await self._event_store.append(vrf.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(vrf)
+        await self._event_producer.publish_many("ipam.events", events)
+        return vrf.id
+
+
+class UpdateVRFHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VRFReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateVRFCommand) -> None:
+        stream = await self._event_store.load_stream(command.vrf_id)
+        if not stream:
+            raise EntityNotFoundError(f"VRF {command.vrf_id} not found")
+        vrf = VRF(aggregate_id=command.vrf_id)
+        vrf.load_from_history(stream)
+
+        vrf.update(
+            name=command.name,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = vrf.collect_uncommitted_events()
+        await self._event_store.append(vrf.id, new_events, expected_version=vrf.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(vrf)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteVRFHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VRFReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteVRFCommand) -> None:
+        stream = await self._event_store.load_stream(command.vrf_id)
+        if not stream:
+            raise EntityNotFoundError(f"VRF {command.vrf_id} not found")
+        vrf = VRF(aggregate_id=command.vrf_id)
+        vrf.load_from_history(stream)
+
+        vrf.delete()
+
+        new_events = vrf.collect_uncommitted_events()
+        await self._event_store.append(vrf.id, new_events, expected_version=vrf.version - len(new_events))
+        await self._read_model_repo.mark_deleted(vrf.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# VLAN
+# ---------------------------------------------------------------------------
+
+
+class CreateVLANHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateVLANCommand) -> UUID:
+        vlan = VLAN.create(
+            vid=command.vid,
+            name=command.name,
+            group_id=command.group_id,
+            status=VLANStatus(command.status),
+            role=command.role,
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = vlan.collect_uncommitted_events()
+        await self._event_store.append(vlan.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(vlan)
+        await self._event_producer.publish_many("ipam.events", events)
+        return vlan.id
+
+
+class UpdateVLANHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateVLANCommand) -> None:
+        stream = await self._event_store.load_stream(command.vlan_id)
+        if not stream:
+            raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
+        vlan = VLAN(aggregate_id=command.vlan_id)
+        vlan.load_from_history(stream)
+
+        vlan.update(
+            name=command.name,
+            role=command.role,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = vlan.collect_uncommitted_events()
+        await self._event_store.append(vlan.id, new_events, expected_version=vlan.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(vlan)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class ChangeVLANStatusHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: ChangeVLANStatusCommand) -> None:
+        stream = await self._event_store.load_stream(command.vlan_id)
+        if not stream:
+            raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
+        vlan = VLAN(aggregate_id=command.vlan_id)
+        vlan.load_from_history(stream)
+
+        vlan.change_status(VLANStatus(command.status))
+
+        new_events = vlan.collect_uncommitted_events()
+        await self._event_store.append(vlan.id, new_events, expected_version=vlan.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(vlan)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteVLANHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteVLANCommand) -> None:
+        stream = await self._event_store.load_stream(command.vlan_id)
+        if not stream:
+            raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
+        vlan = VLAN(aggregate_id=command.vlan_id)
+        vlan.load_from_history(stream)
+
+        vlan.delete()
+
+        new_events = vlan.collect_uncommitted_events()
+        await self._event_store.append(vlan.id, new_events, expected_version=vlan.version - len(new_events))
+        await self._read_model_repo.mark_deleted(vlan.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# IPRange
+# ---------------------------------------------------------------------------
+
+
+class CreateIPRangeHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPRangeReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateIPRangeCommand) -> UUID:
+        ip_range = IPRange.create(
+            start_address=command.start_address,
+            end_address=command.end_address,
+            vrf_id=command.vrf_id,
+            status=IPRangeStatus(command.status),
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = ip_range.collect_uncommitted_events()
+        await self._event_store.append(ip_range.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(ip_range)
+        await self._event_producer.publish_many("ipam.events", events)
+        return ip_range.id
+
+
+class UpdateIPRangeHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPRangeReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateIPRangeCommand) -> None:
+        stream = await self._event_store.load_stream(command.range_id)
+        if not stream:
+            raise EntityNotFoundError(f"IP range {command.range_id} not found")
+        ip_range = IPRange(aggregate_id=command.range_id)
+        ip_range.load_from_history(stream)
+
+        ip_range.update(
+            description=command.description,
+            tenant_id=command.tenant_id,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = ip_range.collect_uncommitted_events()
+        await self._event_store.append(ip_range.id, new_events, expected_version=ip_range.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(ip_range)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class ChangeIPRangeStatusHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPRangeReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: ChangeIPRangeStatusCommand) -> None:
+        stream = await self._event_store.load_stream(command.range_id)
+        if not stream:
+            raise EntityNotFoundError(f"IP range {command.range_id} not found")
+        ip_range = IPRange(aggregate_id=command.range_id)
+        ip_range.load_from_history(stream)
+
+        ip_range.change_status(IPRangeStatus(command.status))
+
+        new_events = ip_range.collect_uncommitted_events()
+        await self._event_store.append(ip_range.id, new_events, expected_version=ip_range.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(ip_range)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteIPRangeHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPRangeReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteIPRangeCommand) -> None:
+        stream = await self._event_store.load_stream(command.range_id)
+        if not stream:
+            raise EntityNotFoundError(f"IP range {command.range_id} not found")
+        ip_range = IPRange(aggregate_id=command.range_id)
+        ip_range.load_from_history(stream)
+
+        ip_range.delete()
+
+        new_events = ip_range.collect_uncommitted_events()
+        await self._event_store.append(ip_range.id, new_events, expected_version=ip_range.version - len(new_events))
+        await self._read_model_repo.mark_deleted(ip_range.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# RIR
+# ---------------------------------------------------------------------------
+
+
+class CreateRIRHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RIRReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateRIRCommand) -> UUID:
+        rir = RIR.create(
+            name=command.name,
+            is_private=command.is_private,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = rir.collect_uncommitted_events()
+        await self._event_store.append(rir.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(rir)
+        await self._event_producer.publish_many("ipam.events", events)
+        return rir.id
+
+
+class UpdateRIRHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RIRReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateRIRCommand) -> None:
+        stream = await self._event_store.load_stream(command.rir_id)
+        if not stream:
+            raise EntityNotFoundError(f"RIR {command.rir_id} not found")
+        rir = RIR(aggregate_id=command.rir_id)
+        rir.load_from_history(stream)
+
+        rir.update(
+            description=command.description,
+            is_private=command.is_private,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = rir.collect_uncommitted_events()
+        await self._event_store.append(rir.id, new_events, expected_version=rir.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(rir)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteRIRHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RIRReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteRIRCommand) -> None:
+        stream = await self._event_store.load_stream(command.rir_id)
+        if not stream:
+            raise EntityNotFoundError(f"RIR {command.rir_id} not found")
+        rir = RIR(aggregate_id=command.rir_id)
+        rir.load_from_history(stream)
+
+        rir.delete()
+
+        new_events = rir.collect_uncommitted_events()
+        await self._event_store.append(rir.id, new_events, expected_version=rir.version - len(new_events))
+        await self._read_model_repo.mark_deleted(rir.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# ASN
+# ---------------------------------------------------------------------------
+
+
+class CreateASNHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ASNReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateASNCommand) -> UUID:
+        asn = ASN.create(
+            asn=command.asn,
+            rir_id=command.rir_id,
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = asn.collect_uncommitted_events()
+        await self._event_store.append(asn.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(asn)
+        await self._event_producer.publish_many("ipam.events", events)
+        return asn.id
+
+
+class UpdateASNHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ASNReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateASNCommand) -> None:
+        stream = await self._event_store.load_stream(command.asn_id)
+        if not stream:
+            raise EntityNotFoundError(f"ASN {command.asn_id} not found")
+        asn = ASN(aggregate_id=command.asn_id)
+        asn.load_from_history(stream)
+
+        asn.update(
+            description=command.description,
+            tenant_id=command.tenant_id,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = asn.collect_uncommitted_events()
+        await self._event_store.append(asn.id, new_events, expected_version=asn.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(asn)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteASNHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ASNReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteASNCommand) -> None:
+        stream = await self._event_store.load_stream(command.asn_id)
+        if not stream:
+            raise EntityNotFoundError(f"ASN {command.asn_id} not found")
+        asn = ASN(aggregate_id=command.asn_id)
+        asn.load_from_history(stream)
+
+        asn.delete()
+
+        new_events = asn.collect_uncommitted_events()
+        await self._event_store.append(asn.id, new_events, expected_version=asn.version - len(new_events))
+        await self._read_model_repo.mark_deleted(asn.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# FHRPGroup
+# ---------------------------------------------------------------------------
+
+
+class CreateFHRPGroupHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: FHRPGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateFHRPGroupCommand) -> UUID:
+        group = FHRPGroup.create(
+            protocol=FHRPProtocol(command.protocol),
+            group_id_value=command.group_id_value,
+            auth_type=FHRPAuthType(command.auth_type),
+            auth_key=command.auth_key,
+            name=command.name,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = group.collect_uncommitted_events()
+        await self._event_store.append(group.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(group)
+        await self._event_producer.publish_many("ipam.events", events)
+        return group.id
+
+
+class UpdateFHRPGroupHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: FHRPGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateFHRPGroupCommand) -> None:
+        stream = await self._event_store.load_stream(command.fhrp_group_id)
+        if not stream:
+            raise EntityNotFoundError(f"FHRP group {command.fhrp_group_id} not found")
+        group = FHRPGroup(aggregate_id=command.fhrp_group_id)
+        group.load_from_history(stream)
+
+        group.update(
+            name=command.name,
+            auth_type=command.auth_type,
+            auth_key=command.auth_key,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = group.collect_uncommitted_events()
+        await self._event_store.append(group.id, new_events, expected_version=group.version - len(new_events))
+        await self._read_model_repo.upsert_from_aggregate(group)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteFHRPGroupHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: FHRPGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteFHRPGroupCommand) -> None:
+        stream = await self._event_store.load_stream(command.fhrp_group_id)
+        if not stream:
+            raise EntityNotFoundError(f"FHRP group {command.fhrp_group_id} not found")
+        group = FHRPGroup(aggregate_id=command.fhrp_group_id)
+        group.load_from_history(stream)
+
+        group.delete()
+
+        new_events = group.collect_uncommitted_events()
+        await self._event_store.append(group.id, new_events, expected_version=group.version - len(new_events))
+        await self._read_model_repo.mark_deleted(group.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
