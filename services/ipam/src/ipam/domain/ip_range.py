@@ -3,20 +3,19 @@ from __future__ import annotations
 from typing import Any, Self
 from uuid import UUID
 
-from ipam.domain.events import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
-from ipam.domain.value_objects import PrefixNetwork, PrefixStatus
+from ipam.domain.events import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
+from ipam.domain.value_objects import IPAddressValue, IPRangeStatus
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.aggregate import AggregateRoot
 
 
-class Prefix(AggregateRoot):
+class IPRange(AggregateRoot):
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
-        self.network: PrefixNetwork | None = None
+        self.start_address: IPAddressValue | None = None
+        self.end_address: IPAddressValue | None = None
         self.vrf_id: UUID | None = None
-        self.vlan_id: UUID | None = None
-        self.status: PrefixStatus = PrefixStatus.ACTIVE
-        self.role: str | None = None
+        self.status: IPRangeStatus = IPRangeStatus.ACTIVE
         self.tenant_id: UUID | None = None
         self.description: str = ""
         self.custom_fields: dict = {}
@@ -27,66 +26,66 @@ class Prefix(AggregateRoot):
     def create(
         cls,
         *,
-        network: str,
+        start_address: str,
+        end_address: str,
         vrf_id: UUID | None = None,
-        vlan_id: UUID | None = None,
-        status: PrefixStatus = PrefixStatus.ACTIVE,
-        role: str | None = None,
+        status: IPRangeStatus = IPRangeStatus.ACTIVE,
         tenant_id: UUID | None = None,
         description: str = "",
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
-    ) -> Prefix:
-        prefix = cls()
-        prefix.apply_event(
-            PrefixCreated(
-                aggregate_id=prefix.id,
-                version=prefix._next_version(),
-                network=str(PrefixNetwork(network=network).network),
+    ) -> IPRange:
+        start = IPAddressValue(address=start_address)
+        end = IPAddressValue(address=end_address)
+        if start.version != end.version:
+            raise BusinessRuleViolationError("Start and end addresses must be the same IP version")
+        if start.ip_address >= end.ip_address:
+            raise BusinessRuleViolationError("Start address must be less than end address")
+        ip_range = cls()
+        ip_range.apply_event(
+            IPRangeCreated(
+                aggregate_id=ip_range.id,
+                version=ip_range._next_version(),
+                start_address=start.address,
+                end_address=end.address,
                 vrf_id=vrf_id,
-                vlan_id=vlan_id,
                 status=status.value,
-                role=role,
                 tenant_id=tenant_id,
                 description=description,
                 custom_fields=custom_fields or {},
                 tags=tags or [],
             )
         )
-        return prefix
+        return ip_range
 
     def update(
         self,
         *,
         description: str | None = None,
-        role: str | None = None,
         tenant_id: UUID | None = None,
-        vlan_id: UUID | None = None,
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
         if self._deleted:
-            raise BusinessRuleViolationError("Cannot update a deleted prefix")
+            raise BusinessRuleViolationError("Cannot update a deleted IP range")
         self.apply_event(
-            PrefixUpdated(
+            IPRangeUpdated(
                 aggregate_id=self.id,
                 version=self._next_version(),
                 description=description,
-                role=role,
                 tenant_id=tenant_id,
-                vlan_id=vlan_id,
                 custom_fields=custom_fields,
                 tags=tags,
             )
         )
 
-    def change_status(self, new_status: PrefixStatus) -> None:
+    def change_status(self, new_status: IPRangeStatus) -> None:
         if self._deleted:
-            raise BusinessRuleViolationError("Cannot change status of a deleted prefix")
+            raise BusinessRuleViolationError("Cannot change status of a deleted IP range")
         if self.status == new_status:
-            raise BusinessRuleViolationError(f"Prefix is already {new_status.value}")
+            raise BusinessRuleViolationError(f"IP range is already {new_status.value}")
         self.apply_event(
-            PrefixStatusChanged(
+            IPRangeStatusChanged(
                 aggregate_id=self.id,
                 version=self._next_version(),
                 old_status=self.status.value,
@@ -96,9 +95,9 @@ class Prefix(AggregateRoot):
 
     def delete(self) -> None:
         if self._deleted:
-            raise BusinessRuleViolationError("Prefix is already deleted")
+            raise BusinessRuleViolationError("IP range is already deleted")
         self.apply_event(
-            PrefixDeleted(
+            IPRangeDeleted(
                 aggregate_id=self.id,
                 version=self._next_version(),
             )
@@ -106,46 +105,40 @@ class Prefix(AggregateRoot):
 
     # --- Event Handlers ---
 
-    def _apply_PrefixCreated(self, event: PrefixCreated) -> None:  # noqa: N802
-        self.network = PrefixNetwork(network=event.network)
+    def _apply_IPRangeCreated(self, event: IPRangeCreated) -> None:  # noqa: N802
+        self.start_address = IPAddressValue(address=event.start_address)
+        self.end_address = IPAddressValue(address=event.end_address)
         self.vrf_id = event.vrf_id
-        self.vlan_id = event.vlan_id
-        self.status = PrefixStatus(event.status)
-        self.role = event.role
+        self.status = IPRangeStatus(event.status)
         self.tenant_id = event.tenant_id
         self.description = event.description
         self.custom_fields = event.custom_fields
         self.tags = list(event.tags)
 
-    def _apply_PrefixUpdated(self, event: PrefixUpdated) -> None:  # noqa: N802
+    def _apply_IPRangeUpdated(self, event: IPRangeUpdated) -> None:  # noqa: N802
         if event.description is not None:
             self.description = event.description
-        if event.role is not None:
-            self.role = event.role
         if event.tenant_id is not None:
             self.tenant_id = event.tenant_id
-        if event.vlan_id is not None:
-            self.vlan_id = event.vlan_id
         if event.custom_fields is not None:
             self.custom_fields = event.custom_fields
         if event.tags is not None:
             self.tags = list(event.tags)
 
-    def _apply_PrefixStatusChanged(self, event: PrefixStatusChanged) -> None:  # noqa: N802
-        self.status = PrefixStatus(event.new_status)
+    def _apply_IPRangeStatusChanged(self, event: IPRangeStatusChanged) -> None:  # noqa: N802
+        self.status = IPRangeStatus(event.new_status)
 
-    def _apply_PrefixDeleted(self, event: PrefixDeleted) -> None:  # noqa: N802
+    def _apply_IPRangeDeleted(self, event: IPRangeDeleted) -> None:  # noqa: N802
         self._deleted = True
 
     # --- Snapshot ---
 
     def to_snapshot(self) -> dict[str, Any]:
         return {
-            "network": self.network.network if self.network else None,
+            "start_address": self.start_address.address if self.start_address else None,
+            "end_address": self.end_address.address if self.end_address else None,
             "vrf_id": str(self.vrf_id) if self.vrf_id else None,
-            "vlan_id": str(self.vlan_id) if self.vlan_id else None,
             "status": self.status.value,
-            "role": self.role,
             "tenant_id": str(self.tenant_id) if self.tenant_id else None,
             "description": self.description,
             "custom_fields": self.custom_fields,
@@ -155,16 +148,15 @@ class Prefix(AggregateRoot):
 
     @classmethod
     def from_snapshot(cls, aggregate_id: UUID, state: dict[str, Any], version: int) -> Self:
-        prefix = cls(aggregate_id=aggregate_id)
-        prefix.version = version
-        prefix.network = PrefixNetwork(network=state["network"]) if state.get("network") else None
-        prefix.vrf_id = UUID(state["vrf_id"]) if state.get("vrf_id") else None
-        prefix.vlan_id = UUID(state["vlan_id"]) if state.get("vlan_id") else None
-        prefix.status = PrefixStatus(state["status"])
-        prefix.role = state.get("role")
-        prefix.tenant_id = UUID(state["tenant_id"]) if state.get("tenant_id") else None
-        prefix.description = state.get("description", "")
-        prefix.custom_fields = state.get("custom_fields", {})
-        prefix.tags = [UUID(t) for t in state.get("tags", [])]
-        prefix._deleted = state.get("deleted", False)
-        return prefix
+        ip_range = cls(aggregate_id=aggregate_id)
+        ip_range.version = version
+        ip_range.start_address = IPAddressValue(address=state["start_address"]) if state.get("start_address") else None
+        ip_range.end_address = IPAddressValue(address=state["end_address"]) if state.get("end_address") else None
+        ip_range.vrf_id = UUID(state["vrf_id"]) if state.get("vrf_id") else None
+        ip_range.status = IPRangeStatus(state["status"])
+        ip_range.tenant_id = UUID(state["tenant_id"]) if state.get("tenant_id") else None
+        ip_range.description = state.get("description", "")
+        ip_range.custom_fields = state.get("custom_fields", {})
+        ip_range.tags = [UUID(t) for t in state.get("tags", [])]
+        ip_range._deleted = state.get("deleted", False)
+        return ip_range

@@ -23,6 +23,8 @@ class IPAddress(AggregateRoot):
         self.dns_name: str = ""
         self.tenant_id: UUID | None = None
         self.description: str = ""
+        self.custom_fields: dict = {}
+        self.tags: list[UUID] = []
         self._deleted: bool = False
 
     @classmethod
@@ -35,6 +37,8 @@ class IPAddress(AggregateRoot):
         dns_name: str = "",
         tenant_id: UUID | None = None,
         description: str = "",
+        custom_fields: dict | None = None,
+        tags: list[UUID] | None = None,
     ) -> IPAddress:
         ip = cls()
         ip.apply_event(
@@ -47,6 +51,8 @@ class IPAddress(AggregateRoot):
                 dns_name=dns_name,
                 tenant_id=tenant_id,
                 description=description,
+                custom_fields=custom_fields or {},
+                tags=tags or [],
             )
         )
         return ip
@@ -56,6 +62,8 @@ class IPAddress(AggregateRoot):
         *,
         dns_name: str | None = None,
         description: str | None = None,
+        custom_fields: dict | None = None,
+        tags: list[UUID] | None = None,
     ) -> None:
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted IP address")
@@ -65,6 +73,8 @@ class IPAddress(AggregateRoot):
                 version=self._next_version(),
                 dns_name=dns_name,
                 description=description,
+                custom_fields=custom_fields,
+                tags=tags,
             )
         )
 
@@ -101,12 +111,18 @@ class IPAddress(AggregateRoot):
         self.dns_name = event.dns_name
         self.tenant_id = event.tenant_id
         self.description = event.description
+        self.custom_fields = event.custom_fields
+        self.tags = list(event.tags)
 
     def _apply_IPAddressUpdated(self, event: IPAddressUpdated) -> None:  # noqa: N802
         if event.dns_name is not None:
             self.dns_name = event.dns_name
         if event.description is not None:
             self.description = event.description
+        if event.custom_fields is not None:
+            self.custom_fields = event.custom_fields
+        if event.tags is not None:
+            self.tags = list(event.tags)
 
     def _apply_IPAddressStatusChanged(self, event: IPAddressStatusChanged) -> None:  # noqa: N802
         self.status = IPAddressStatus(event.new_status)
@@ -124,6 +140,8 @@ class IPAddress(AggregateRoot):
             "dns_name": self.dns_name,
             "tenant_id": str(self.tenant_id) if self.tenant_id else None,
             "description": self.description,
+            "custom_fields": self.custom_fields,
+            "tags": [str(t) for t in self.tags],
             "deleted": self._deleted,
         }
 
@@ -137,5 +155,7 @@ class IPAddress(AggregateRoot):
         ip.dns_name = state.get("dns_name", "")
         ip.tenant_id = UUID(state["tenant_id"]) if state.get("tenant_id") else None
         ip.description = state.get("description", "")
+        ip.custom_fields = state.get("custom_fields", {})
+        ip.tags = [UUID(t) for t in state.get("tags", [])]
         ip._deleted = state.get("deleted", False)
         return ip

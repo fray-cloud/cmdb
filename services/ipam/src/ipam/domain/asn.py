@@ -3,17 +3,17 @@ from __future__ import annotations
 from typing import Any, Self
 from uuid import UUID
 
-from ipam.domain.events import VRFCreated, VRFDeleted, VRFUpdated
-from ipam.domain.value_objects import RouteDistinguisher
+from ipam.domain.events import ASNCreated, ASNDeleted, ASNUpdated
+from ipam.domain.value_objects import ASNumber
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.aggregate import AggregateRoot
 
 
-class VRF(AggregateRoot):
+class ASN(AggregateRoot):
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
-        self.name: str = ""
-        self.rd: RouteDistinguisher | None = None
+        self.asn: ASNumber | None = None
+        self.rir_id: UUID | None = None
         self.tenant_id: UUID | None = None
         self.description: str = ""
         self.custom_fields: dict = {}
@@ -24,44 +24,45 @@ class VRF(AggregateRoot):
     def create(
         cls,
         *,
-        name: str,
-        rd: str | None = None,
+        asn: int,
+        rir_id: UUID | None = None,
         tenant_id: UUID | None = None,
         description: str = "",
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
-    ) -> VRF:
-        vrf = cls()
-        vrf.apply_event(
-            VRFCreated(
-                aggregate_id=vrf.id,
-                version=vrf._next_version(),
-                name=name,
-                rd=RouteDistinguisher(rd=rd).rd if rd else None,
+    ) -> ASN:
+        asn_vo = ASNumber(asn=asn)
+        aggregate = cls()
+        aggregate.apply_event(
+            ASNCreated(
+                aggregate_id=aggregate.id,
+                version=aggregate._next_version(),
+                asn=asn_vo.asn,
+                rir_id=rir_id,
                 tenant_id=tenant_id,
                 description=description,
                 custom_fields=custom_fields or {},
                 tags=tags or [],
             )
         )
-        return vrf
+        return aggregate
 
     def update(
         self,
         *,
-        name: str | None = None,
         description: str | None = None,
+        tenant_id: UUID | None = None,
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
         if self._deleted:
-            raise BusinessRuleViolationError("Cannot update a deleted VRF")
+            raise BusinessRuleViolationError("Cannot update a deleted ASN")
         self.apply_event(
-            VRFUpdated(
+            ASNUpdated(
                 aggregate_id=self.id,
                 version=self._next_version(),
-                name=name,
                 description=description,
+                tenant_id=tenant_id,
                 custom_fields=custom_fields,
                 tags=tags,
             )
@@ -69,9 +70,9 @@ class VRF(AggregateRoot):
 
     def delete(self) -> None:
         if self._deleted:
-            raise BusinessRuleViolationError("VRF is already deleted")
+            raise BusinessRuleViolationError("ASN is already deleted")
         self.apply_event(
-            VRFDeleted(
+            ASNDeleted(
                 aggregate_id=self.id,
                 version=self._next_version(),
             )
@@ -79,33 +80,33 @@ class VRF(AggregateRoot):
 
     # --- Event Handlers ---
 
-    def _apply_VRFCreated(self, event: VRFCreated) -> None:  # noqa: N802
-        self.name = event.name
-        self.rd = RouteDistinguisher(rd=event.rd) if event.rd else None
+    def _apply_ASNCreated(self, event: ASNCreated) -> None:  # noqa: N802
+        self.asn = ASNumber(asn=event.asn)
+        self.rir_id = event.rir_id
         self.tenant_id = event.tenant_id
         self.description = event.description
         self.custom_fields = event.custom_fields
         self.tags = list(event.tags)
 
-    def _apply_VRFUpdated(self, event: VRFUpdated) -> None:  # noqa: N802
-        if event.name is not None:
-            self.name = event.name
+    def _apply_ASNUpdated(self, event: ASNUpdated) -> None:  # noqa: N802
         if event.description is not None:
             self.description = event.description
+        if event.tenant_id is not None:
+            self.tenant_id = event.tenant_id
         if event.custom_fields is not None:
             self.custom_fields = event.custom_fields
         if event.tags is not None:
             self.tags = list(event.tags)
 
-    def _apply_VRFDeleted(self, event: VRFDeleted) -> None:  # noqa: N802
+    def _apply_ASNDeleted(self, event: ASNDeleted) -> None:  # noqa: N802
         self._deleted = True
 
     # --- Snapshot ---
 
     def to_snapshot(self) -> dict[str, Any]:
         return {
-            "name": self.name,
-            "rd": self.rd.rd if self.rd else None,
+            "asn": self.asn.asn if self.asn else None,
+            "rir_id": str(self.rir_id) if self.rir_id else None,
             "tenant_id": str(self.tenant_id) if self.tenant_id else None,
             "description": self.description,
             "custom_fields": self.custom_fields,
@@ -115,13 +116,13 @@ class VRF(AggregateRoot):
 
     @classmethod
     def from_snapshot(cls, aggregate_id: UUID, state: dict[str, Any], version: int) -> Self:
-        vrf = cls(aggregate_id=aggregate_id)
-        vrf.version = version
-        vrf.name = state.get("name", "")
-        vrf.rd = RouteDistinguisher(rd=state["rd"]) if state.get("rd") else None
-        vrf.tenant_id = UUID(state["tenant_id"]) if state.get("tenant_id") else None
-        vrf.description = state.get("description", "")
-        vrf.custom_fields = state.get("custom_fields", {})
-        vrf.tags = [UUID(t) for t in state.get("tags", [])]
-        vrf._deleted = state.get("deleted", False)
-        return vrf
+        aggregate = cls(aggregate_id=aggregate_id)
+        aggregate.version = version
+        aggregate.asn = ASNumber(asn=state["asn"]) if state.get("asn") is not None else None
+        aggregate.rir_id = UUID(state["rir_id"]) if state.get("rir_id") else None
+        aggregate.tenant_id = UUID(state["tenant_id"]) if state.get("tenant_id") else None
+        aggregate.description = state.get("description", "")
+        aggregate.custom_fields = state.get("custom_fields", {})
+        aggregate.tags = [UUID(t) for t in state.get("tags", [])]
+        aggregate._deleted = state.get("deleted", False)
+        return aggregate

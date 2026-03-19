@@ -430,7 +430,18 @@ class TestVLANSnapshot:
     def test_to_snapshot_contains_expected_keys(self):
         vlan = make_vlan()
         snap = vlan.to_snapshot()
-        expected = {"vid", "name", "group_id", "status", "role", "tenant_id", "description", "deleted"}
+        expected = {
+            "vid",
+            "name",
+            "group_id",
+            "status",
+            "role",
+            "tenant_id",
+            "description",
+            "custom_fields",
+            "tags",
+            "deleted",
+        }
         assert expected == snap.keys()
 
     def test_snapshot_roundtrip_preserves_vid(self):

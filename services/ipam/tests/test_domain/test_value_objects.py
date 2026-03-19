@@ -2,8 +2,12 @@
 
 import pytest
 from ipam.domain.value_objects import (
+    ASNumber,
+    FHRPAuthType,
+    FHRPProtocol,
     IPAddressStatus,
     IPAddressValue,
+    IPRangeStatus,
     PrefixNetwork,
     PrefixStatus,
     RouteDistinguisher,
@@ -258,3 +262,59 @@ class TestStatusEnums:
 
     def test_vlan_status_from_string(self):
         assert VLANStatus("deprecated") is VLANStatus.DEPRECATED
+
+    def test_ip_range_status_values(self):
+        assert IPRangeStatus.ACTIVE == "active"
+        assert IPRangeStatus.RESERVED == "reserved"
+        assert IPRangeStatus.DEPRECATED == "deprecated"
+
+    def test_ip_range_status_from_string(self):
+        assert IPRangeStatus("active") is IPRangeStatus.ACTIVE
+
+    def test_fhrp_protocol_values(self):
+        assert FHRPProtocol.VRRP == "vrrp"
+        assert FHRPProtocol.HSRP == "hsrp"
+        assert FHRPProtocol.GLBP == "glbp"
+        assert FHRPProtocol.CARP == "carp"
+        assert FHRPProtocol.OTHER == "other"
+
+    def test_fhrp_protocol_from_string(self):
+        assert FHRPProtocol("vrrp") is FHRPProtocol.VRRP
+
+    def test_fhrp_auth_type_values(self):
+        assert FHRPAuthType.PLAINTEXT == "plaintext"
+        assert FHRPAuthType.MD5 == "md5"
+
+    def test_fhrp_auth_type_from_string(self):
+        assert FHRPAuthType("md5") is FHRPAuthType.MD5
+
+
+class TestASNumber:
+    def test_valid_asn_minimum(self):
+        asn = ASNumber(asn=1)
+        assert asn.asn == 1
+
+    def test_valid_asn_maximum(self):
+        asn = ASNumber(asn=4294967295)
+        assert asn.asn == 4294967295
+
+    def test_valid_asn_private_range(self):
+        asn = ASNumber(asn=65001)
+        assert asn.asn == 65001
+
+    def test_asn_zero_raises_validation_error(self):
+        with pytest.raises(ValidationError):
+            ASNumber(asn=0)
+
+    def test_asn_negative_raises_validation_error(self):
+        with pytest.raises(ValidationError):
+            ASNumber(asn=-1)
+
+    def test_asn_too_large_raises_validation_error(self):
+        with pytest.raises(ValidationError):
+            ASNumber(asn=4294967296)
+
+    def test_value_object_is_immutable(self):
+        asn = ASNumber(asn=65000)
+        with pytest.raises((ValueError, ValidationError)):
+            asn.asn = 65001

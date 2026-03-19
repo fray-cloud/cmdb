@@ -85,6 +85,25 @@ class VLANId(ValueObject):
         return v
 
 
+class IPRangeStatus(StrEnum):
+    ACTIVE = "active"
+    RESERVED = "reserved"
+    DEPRECATED = "deprecated"
+
+
+class FHRPProtocol(StrEnum):
+    VRRP = "vrrp"
+    HSRP = "hsrp"
+    GLBP = "glbp"
+    CARP = "carp"
+    OTHER = "other"
+
+
+class FHRPAuthType(StrEnum):
+    PLAINTEXT = "plaintext"
+    MD5 = "md5"
+
+
 class RouteDistinguisher(ValueObject):
     rd: str
 
@@ -94,4 +113,15 @@ class RouteDistinguisher(ValueObject):
         parts = v.split(":")
         if len(parts) != 2:
             raise ValueError(f"Route Distinguisher must be in format 'ASN:NN' or 'IP:NN', got '{v}'")
+        return v
+
+
+class ASNumber(ValueObject):
+    asn: int
+
+    @field_validator("asn")
+    @classmethod
+    def validate_asn(cls, v: int) -> int:
+        if not 1 <= v <= 4294967295:
+            raise ValueError(f"ASN must be between 1 and 4294967295, got {v}")
         return v

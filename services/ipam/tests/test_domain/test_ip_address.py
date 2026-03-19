@@ -424,7 +424,17 @@ class TestIPAddressSnapshot:
     def test_to_snapshot_contains_expected_keys(self):
         ip = make_ip()
         snap = ip.to_snapshot()
-        expected = {"address", "vrf_id", "status", "dns_name", "tenant_id", "description", "deleted"}
+        expected = {
+            "address",
+            "vrf_id",
+            "status",
+            "dns_name",
+            "tenant_id",
+            "description",
+            "custom_fields",
+            "tags",
+            "deleted",
+        }
         assert expected == snap.keys()
 
     def test_snapshot_roundtrip_preserves_address(self):

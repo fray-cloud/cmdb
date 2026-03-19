@@ -343,7 +343,7 @@ class TestVRFSnapshot:
     def test_to_snapshot_contains_expected_keys(self):
         vrf = make_vrf()
         snap = vrf.to_snapshot()
-        expected = {"name", "rd", "tenant_id", "description", "deleted"}
+        expected = {"name", "rd", "tenant_id", "description", "custom_fields", "tags", "deleted"}
         assert expected == snap.keys()
 
     def test_snapshot_roundtrip_preserves_name(self):

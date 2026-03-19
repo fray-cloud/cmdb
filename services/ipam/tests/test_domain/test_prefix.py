@@ -395,7 +395,18 @@ class TestPrefixSnapshot:
     def test_to_snapshot_contains_expected_keys(self):
         prefix = make_prefix()
         snap = prefix.to_snapshot()
-        expected_keys = {"network", "vrf_id", "status", "role", "tenant_id", "description", "deleted"}
+        expected_keys = {
+            "network",
+            "vrf_id",
+            "vlan_id",
+            "status",
+            "role",
+            "tenant_id",
+            "description",
+            "custom_fields",
+            "tags",
+            "deleted",
+        }
         assert expected_keys == snap.keys()
 
     def test_snapshot_roundtrip_preserves_network(self):

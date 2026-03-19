@@ -1,5 +1,6 @@
 import json
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID
 
@@ -27,14 +28,24 @@ class PostgresEventStore(EventStore):
         key = f"{event_cls.__module__}.{event_cls.__qualname__}"
         self._event_registry[key] = event_cls
 
+    @asynccontextmanager
+    async def _get_session(self, session: AsyncSession | None = None) -> AsyncGenerator[tuple[AsyncSession, bool]]:
+        if session is not None:
+            yield session, False
+        else:
+            async with self._session_factory() as new_session:
+                yield new_session, True
+
     async def append(
         self,
         aggregate_id: UUID,
         events: list[DomainEvent],
         expected_version: int,
+        *,
+        session: AsyncSession | None = None,
     ) -> None:
-        async with self._session_factory() as session:
-            result = await session.execute(
+        async with self._get_session(session) as (sess, owns_session):
+            result = await sess.execute(
                 select(StoredEvent.version)
                 .where(StoredEvent.aggregate_id == aggregate_id)
                 .order_by(StoredEvent.version.desc())
@@ -60,17 +71,20 @@ class PostgresEventStore(EventStore):
                     payload=json.loads(event.model_dump_json()),
                     timestamp=event.timestamp,
                 )
-                session.add(stored)
+                sess.add(stored)
 
-            await session.commit()
+            if owns_session:
+                await sess.commit()
 
     async def load_stream(
         self,
         aggregate_id: UUID,
         after_version: int = 0,
+        *,
+        session: AsyncSession | None = None,
     ) -> list[DomainEvent]:
-        async with self._session_factory() as session:
-            result = await session.execute(
+        async with self._get_session(session) as (sess, _):
+            result = await sess.execute(
                 select(StoredEvent)
                 .where(
                     StoredEvent.aggregate_id == aggregate_id,

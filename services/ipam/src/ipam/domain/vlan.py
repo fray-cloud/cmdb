@@ -19,6 +19,8 @@ class VLAN(AggregateRoot):
         self.role: str | None = None
         self.tenant_id: UUID | None = None
         self.description: str = ""
+        self.custom_fields: dict = {}
+        self.tags: list[UUID] = []
         self._deleted: bool = False
 
     @classmethod
@@ -32,6 +34,8 @@ class VLAN(AggregateRoot):
         role: str | None = None,
         tenant_id: UUID | None = None,
         description: str = "",
+        custom_fields: dict | None = None,
+        tags: list[UUID] | None = None,
     ) -> VLAN:
         vlan = cls()
         vlan.apply_event(
@@ -45,6 +49,8 @@ class VLAN(AggregateRoot):
                 role=role,
                 tenant_id=tenant_id,
                 description=description,
+                custom_fields=custom_fields or {},
+                tags=tags or [],
             )
         )
         return vlan
@@ -55,6 +61,8 @@ class VLAN(AggregateRoot):
         name: str | None = None,
         role: str | None = None,
         description: str | None = None,
+        custom_fields: dict | None = None,
+        tags: list[UUID] | None = None,
     ) -> None:
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted VLAN")
@@ -65,6 +73,8 @@ class VLAN(AggregateRoot):
                 name=name,
                 role=role,
                 description=description,
+                custom_fields=custom_fields,
+                tags=tags,
             )
         )
 
@@ -102,6 +112,8 @@ class VLAN(AggregateRoot):
         self.role = event.role
         self.tenant_id = event.tenant_id
         self.description = event.description
+        self.custom_fields = event.custom_fields
+        self.tags = list(event.tags)
 
     def _apply_VLANUpdated(self, event: VLANUpdated) -> None:  # noqa: N802
         if event.name is not None:
@@ -110,6 +122,10 @@ class VLAN(AggregateRoot):
             self.role = event.role
         if event.description is not None:
             self.description = event.description
+        if event.custom_fields is not None:
+            self.custom_fields = event.custom_fields
+        if event.tags is not None:
+            self.tags = list(event.tags)
 
     def _apply_VLANStatusChanged(self, event: VLANStatusChanged) -> None:  # noqa: N802
         self.status = VLANStatus(event.new_status)
@@ -128,6 +144,8 @@ class VLAN(AggregateRoot):
             "role": self.role,
             "tenant_id": str(self.tenant_id) if self.tenant_id else None,
             "description": self.description,
+            "custom_fields": self.custom_fields,
+            "tags": [str(t) for t in self.tags],
             "deleted": self._deleted,
         }
 
@@ -142,5 +160,7 @@ class VLAN(AggregateRoot):
         vlan.role = state.get("role")
         vlan.tenant_id = UUID(state["tenant_id"]) if state.get("tenant_id") else None
         vlan.description = state.get("description", "")
+        vlan.custom_fields = state.get("custom_fields", {})
+        vlan.tags = [UUID(t) for t in state.get("tags", [])]
         vlan._deleted = state.get("deleted", False)
         return vlan
