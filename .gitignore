@@ -47,6 +47,9 @@ out/
 # Docker
 docker-compose.override.yml
 
+# RSA keys
+keys/
+
 # Logs
 *.log
 npm-debug.log*

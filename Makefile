@@ -1,5 +1,5 @@
 .PHONY: dev-up dev-down dev-logs dev-build prod-up prod-down prod-build \
-       lint format test db-shell kafka-shell redis-shell clean
+       lint format test db-shell kafka-shell redis-shell clean dev-keygen
 
 # Dev environment
 dev-up:
@@ -45,6 +45,12 @@ kafka-shell:
 
 redis-shell:
 	docker compose -f docker-compose.dev.yml exec redis redis-cli
+
+dev-keygen:
+	@mkdir -p keys
+	openssl genrsa -out keys/private.pem 2048
+	openssl rsa -in keys/private.pem -pubout -out keys/public.pem
+	@echo "RSA keys generated in keys/"
 
 clean:
 	docker compose -f docker-compose.dev.yml down -v --remove-orphans
