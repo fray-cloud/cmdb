@@ -343,7 +343,17 @@ class TestVRFSnapshot:
     def test_to_snapshot_contains_expected_keys(self):
         vrf = make_vrf()
         snap = vrf.to_snapshot()
-        expected = {"name", "rd", "tenant_id", "description", "custom_fields", "tags", "deleted"}
+        expected = {
+            "name",
+            "rd",
+            "import_targets",
+            "export_targets",
+            "tenant_id",
+            "description",
+            "custom_fields",
+            "tags",
+            "deleted",
+        }
         assert expected == snap.keys()
 
     def test_snapshot_roundtrip_preserves_name(self):
@@ -405,3 +415,64 @@ class TestVRFSnapshot:
         snap = vrf.to_snapshot()
         restored = VRF.from_snapshot(vrf.id, snap, vrf.version)
         assert restored.collect_uncommitted_events() == []
+
+
+# ---------------------------------------------------------------------------
+# Route Targets (import/export)
+# ---------------------------------------------------------------------------
+
+
+class TestVRFRouteTargets:
+    def test_create_with_import_targets(self):
+        rt_id = uuid4()
+        vrf = VRF.create(name="test", import_targets=[rt_id])
+        assert vrf.import_targets == [rt_id]
+
+    def test_create_with_export_targets(self):
+        rt_id = uuid4()
+        vrf = VRF.create(name="test", export_targets=[rt_id])
+        assert vrf.export_targets == [rt_id]
+
+    def test_create_default_empty_targets(self):
+        vrf = make_vrf()
+        assert vrf.import_targets == []
+        assert vrf.export_targets == []
+
+    def test_update_import_targets(self):
+        vrf = make_vrf()
+        vrf.collect_uncommitted_events()
+        rt_id = uuid4()
+        vrf.update(import_targets=[rt_id])
+        assert vrf.import_targets == [rt_id]
+
+    def test_update_export_targets(self):
+        vrf = make_vrf()
+        vrf.collect_uncommitted_events()
+        rt_id = uuid4()
+        vrf.update(export_targets=[rt_id])
+        assert vrf.export_targets == [rt_id]
+
+    def test_event_has_import_export_targets(self):
+        rt1 = uuid4()
+        rt2 = uuid4()
+        vrf = VRF.create(name="test", import_targets=[rt1], export_targets=[rt2])
+        events = vrf.collect_uncommitted_events()
+        assert events[0].import_targets == [rt1]
+        assert events[0].export_targets == [rt2]
+
+    def test_snapshot_preserves_targets(self):
+        rt1, rt2 = uuid4(), uuid4()
+        vrf = VRF.create(name="test", import_targets=[rt1], export_targets=[rt2])
+        snap = vrf.to_snapshot()
+        restored = VRF.from_snapshot(vrf.id, snap, vrf.version)
+        assert restored.import_targets == [rt1]
+        assert restored.export_targets == [rt2]
+
+    def test_load_from_history_restores_targets(self):
+        rt1, rt2 = uuid4(), uuid4()
+        vrf = VRF.create(name="test", import_targets=[rt1], export_targets=[rt2])
+        events = vrf.collect_uncommitted_events()
+        restored = VRF()
+        restored.load_from_history(events)
+        assert restored.import_targets == [rt1]
+        assert restored.export_targets == [rt2]

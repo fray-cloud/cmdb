@@ -14,6 +14,8 @@ class VRF(AggregateRoot):
         super().__init__(aggregate_id)
         self.name: str = ""
         self.rd: RouteDistinguisher | None = None
+        self.import_targets: list[UUID] = []
+        self.export_targets: list[UUID] = []
         self.tenant_id: UUID | None = None
         self.description: str = ""
         self.custom_fields: dict = {}
@@ -26,6 +28,8 @@ class VRF(AggregateRoot):
         *,
         name: str,
         rd: str | None = None,
+        import_targets: list[UUID] | None = None,
+        export_targets: list[UUID] | None = None,
         tenant_id: UUID | None = None,
         description: str = "",
         custom_fields: dict | None = None,
@@ -38,6 +42,8 @@ class VRF(AggregateRoot):
                 version=vrf._next_version(),
                 name=name,
                 rd=RouteDistinguisher(rd=rd).rd if rd else None,
+                import_targets=import_targets or [],
+                export_targets=export_targets or [],
                 tenant_id=tenant_id,
                 description=description,
                 custom_fields=custom_fields or {},
@@ -50,6 +56,8 @@ class VRF(AggregateRoot):
         self,
         *,
         name: str | None = None,
+        import_targets: list[UUID] | None = None,
+        export_targets: list[UUID] | None = None,
         description: str | None = None,
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
@@ -61,6 +69,8 @@ class VRF(AggregateRoot):
                 aggregate_id=self.id,
                 version=self._next_version(),
                 name=name,
+                import_targets=import_targets,
+                export_targets=export_targets,
                 description=description,
                 custom_fields=custom_fields,
                 tags=tags,
@@ -82,6 +92,8 @@ class VRF(AggregateRoot):
     def _apply_VRFCreated(self, event: VRFCreated) -> None:  # noqa: N802
         self.name = event.name
         self.rd = RouteDistinguisher(rd=event.rd) if event.rd else None
+        self.import_targets = list(event.import_targets)
+        self.export_targets = list(event.export_targets)
         self.tenant_id = event.tenant_id
         self.description = event.description
         self.custom_fields = event.custom_fields
@@ -90,6 +102,10 @@ class VRF(AggregateRoot):
     def _apply_VRFUpdated(self, event: VRFUpdated) -> None:  # noqa: N802
         if event.name is not None:
             self.name = event.name
+        if event.import_targets is not None:
+            self.import_targets = list(event.import_targets)
+        if event.export_targets is not None:
+            self.export_targets = list(event.export_targets)
         if event.description is not None:
             self.description = event.description
         if event.custom_fields is not None:
@@ -106,6 +122,8 @@ class VRF(AggregateRoot):
         return {
             "name": self.name,
             "rd": self.rd.rd if self.rd else None,
+            "import_targets": [str(t) for t in self.import_targets],
+            "export_targets": [str(t) for t in self.export_targets],
             "tenant_id": str(self.tenant_id) if self.tenant_id else None,
             "description": self.description,
             "custom_fields": self.custom_fields,
@@ -119,6 +137,8 @@ class VRF(AggregateRoot):
         vrf.version = version
         vrf.name = state.get("name", "")
         vrf.rd = RouteDistinguisher(rd=state["rd"]) if state.get("rd") else None
+        vrf.import_targets = [UUID(t) for t in state.get("import_targets", [])]
+        vrf.export_targets = [UUID(t) for t in state.get("export_targets", [])]
         vrf.tenant_id = UUID(state["tenant_id"]) if state.get("tenant_id") else None
         vrf.description = state.get("description", "")
         vrf.custom_fields = state.get("custom_fields", {})
