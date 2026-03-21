@@ -51,8 +51,13 @@ logger = logging.getLogger(__name__)
 
 
 class IPAMEventProjector:
-    def __init__(self, session_factory: object) -> None:
+    def __init__(self, session_factory: object, cache: object | None = None) -> None:
         self._session_factory = session_factory
+        self._cache = cache
+
+    async def _invalidate_cache(self, prefix_id: UUID) -> None:
+        if self._cache is not None:
+            await self._cache.invalidate_prefix_utilization(prefix_id)
 
     async def _handle_prefix_created(self, event: DomainEvent) -> None:
         assert isinstance(event, PrefixCreated)
@@ -73,6 +78,7 @@ class IPAMEventProjector:
             stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=dict(stmt.excluded))
             await session.execute(stmt)
             await session.commit()
+        await self._invalidate_cache(event.aggregate_id)
 
     async def _handle_prefix_updated(self, event: DomainEvent) -> None:
         assert isinstance(event, PrefixUpdated)
@@ -91,13 +97,16 @@ class IPAMEventProjector:
             values["tags"] = [str(t) for t in event.tags]
         if values:
             await self._update_model(PrefixReadModel, event.aggregate_id, values)
+        await self._invalidate_cache(event.aggregate_id)
 
     async def _handle_prefix_status_changed(self, event: DomainEvent) -> None:
         assert isinstance(event, PrefixStatusChanged)
         await self._update_model(PrefixReadModel, event.aggregate_id, {"status": event.new_status})
+        await self._invalidate_cache(event.aggregate_id)
 
     async def _handle_prefix_deleted(self, event: DomainEvent) -> None:
         await self._update_model(PrefixReadModel, event.aggregate_id, {"is_deleted": True})
+        await self._invalidate_cache(event.aggregate_id)
 
     async def _handle_ip_address_created(self, event: DomainEvent) -> None:
         assert isinstance(event, IPAddressCreated)

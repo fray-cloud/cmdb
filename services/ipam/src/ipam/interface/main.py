@@ -36,6 +36,7 @@ from ipam.domain.events import (
     VRFDeleted,
     VRFUpdated,
 )
+from ipam.infrastructure.cache import RedisCache
 from ipam.infrastructure.config import Settings
 from ipam.infrastructure.database import Database
 from ipam.infrastructure.event_projector import IPAMEventProjector
@@ -118,7 +119,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         topics=["ipam.events"],
         serializer=serializer,
     )
-    projector = IPAMEventProjector(database.session)
+    cache = RedisCache(settings.redis_url)
+    await cache.connect()
+
+    projector = IPAMEventProjector(database.session, cache=cache)
     projector.register_all(projector_consumer)
     await projector_consumer.start()
     consumer_task = asyncio.create_task(projector_consumer.consume())
@@ -127,6 +131,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     app.state.database = database
     app.state.event_store = event_store
     app.state.event_producer = event_producer
+    app.state.cache = cache
 
     yield
 
@@ -135,6 +140,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         await consumer_task
     await projector_consumer.stop()
     await event_producer.stop()
+    await cache.close()
     await database.close()
 
 

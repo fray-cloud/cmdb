@@ -80,7 +80,8 @@ def _get_query_bus(request: Request) -> QueryBus:
     bus.register(GetPrefixQuery, GetPrefixHandler(prefix_repo))
     bus.register(ListPrefixesQuery, ListPrefixesHandler(prefix_repo))
     bus.register(GetPrefixChildrenQuery, GetPrefixChildrenHandler(prefix_repo))
-    bus.register(GetPrefixUtilizationQuery, GetPrefixUtilizationHandler(prefix_repo, ip_repo))
+    cache = getattr(request.app.state, "cache", None)
+    bus.register(GetPrefixUtilizationQuery, GetPrefixUtilizationHandler(prefix_repo, ip_repo, cache=cache))
     bus.register(GetAvailablePrefixesQuery, GetAvailablePrefixesHandler(prefix_repo))
     bus.register(GetAvailableIPsQuery, GetAvailableIPsHandler(prefix_repo, ip_repo))
     return bus

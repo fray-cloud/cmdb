@@ -74,12 +74,20 @@ class GetPrefixUtilizationHandler(QueryHandler[float]):
         self,
         prefix_repo: PrefixReadModelRepository,
         ip_repo: IPAddressReadModelRepository,
+        cache: object | None = None,
     ) -> None:
         self._prefix_repo = prefix_repo
         self._ip_repo = ip_repo
         self._service = PrefixUtilizationService()
+        self._cache = cache
 
     async def handle(self, query: Query) -> float:
+        if self._cache is not None:
+            cache_key = f"prefix_utilization:{query.prefix_id}"
+            cached = await self._cache.get_json(cache_key)
+            if cached is not None:
+                return cached
+
         data = await self._prefix_repo.find_by_id(query.prefix_id)
         if data is None:
             raise EntityNotFoundError(f"Prefix {query.prefix_id} not found")
@@ -88,7 +96,12 @@ class GetPrefixUtilizationHandler(QueryHandler[float]):
         child_prefixes = [_reconstruct_prefix(c) for c in children_data]
         ips_data = await self._ip_repo.find_by_prefix(data["network"], data.get("vrf_id"))
         ip_addresses = [_reconstruct_ip(ip) for ip in ips_data]
-        return self._service.calculate(prefix, child_prefixes, ip_addresses)
+        result = self._service.calculate(prefix, child_prefixes, ip_addresses)
+
+        if self._cache is not None:
+            await self._cache.set_json(cache_key, result)
+
+        return result
 
 
 class GetAvailablePrefixesHandler(QueryHandler[list[str]]):
