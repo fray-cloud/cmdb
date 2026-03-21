@@ -1,3 +1,6 @@
+import asyncio
+import contextlib
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -35,6 +38,7 @@ from ipam.domain.events import (
 )
 from ipam.infrastructure.config import Settings
 from ipam.infrastructure.database import Database
+from ipam.infrastructure.event_projector import IPAMEventProjector
 from ipam.interface.routers.asn_router import router as asn_router
 from ipam.interface.routers.fhrp_group_router import router as fhrp_group_router
 from ipam.interface.routers.ip_address_router import router as ip_address_router
@@ -47,8 +51,11 @@ from shared.api.errors import domain_exception_handler
 from shared.api.middleware import CorrelationIdMiddleware
 from shared.domain.exceptions import DomainError
 from shared.event.pg_store import PostgresEventStore
+from shared.messaging.consumer import KafkaEventConsumer
 from shared.messaging.producer import KafkaEventProducer
 from shared.messaging.serialization import EventSerializer
+
+logger = logging.getLogger(__name__)
 
 ALL_EVENTS = [
     # Prefix
@@ -105,6 +112,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     event_producer = KafkaEventProducer(settings.kafka_bootstrap_servers, serializer)
     await event_producer.start()
 
+    projector_consumer = KafkaEventConsumer(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        group_id="ipam-projector",
+        topics=["ipam.events"],
+        serializer=serializer,
+    )
+    projector = IPAMEventProjector(database.session)
+    projector.register_all(projector_consumer)
+    await projector_consumer.start()
+    consumer_task = asyncio.create_task(projector_consumer.consume())
+
     app.state.settings = settings
     app.state.database = database
     app.state.event_store = event_store
@@ -112,6 +130,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     yield
 
+    consumer_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await consumer_task
+    await projector_consumer.stop()
     await event_producer.stop()
     await database.close()
 
