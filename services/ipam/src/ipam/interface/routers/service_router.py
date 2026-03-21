@@ -1,0 +1,135 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Request, status
+
+from ipam.application.command_handlers import (
+    BulkCreateServicesHandler,
+    CreateServiceHandler,
+    DeleteServiceHandler,
+    UpdateServiceHandler,
+)
+from ipam.application.commands import (
+    BulkCreateServicesCommand,
+    CreateServiceCommand,
+    DeleteServiceCommand,
+    UpdateServiceCommand,
+)
+from ipam.application.queries import GetServiceQuery, ListServicesQuery
+from ipam.application.query_handlers import GetServiceHandler, ListServicesHandler
+from ipam.infrastructure.read_model_repository import PostgresServiceReadModelRepository
+from ipam.interface.schemas import (
+    BulkCreateResponse,
+    CreateServiceRequest,
+    ServiceListResponse,
+    ServiceResponse,
+    UpdateServiceRequest,
+)
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
+
+router = APIRouter(prefix="/services", tags=["services"])
+
+
+def _get_command_bus(request: Request) -> CommandBus:
+    session = request.app.state.database.session()
+    read_model_repo = PostgresServiceReadModelRepository(session)
+    event_store = request.app.state.event_store
+    event_producer = request.app.state.event_producer
+
+    bus = CommandBus()
+    bus.register(CreateServiceCommand, CreateServiceHandler(event_store, read_model_repo, event_producer))
+    bus.register(UpdateServiceCommand, UpdateServiceHandler(event_store, read_model_repo, event_producer))
+    bus.register(DeleteServiceCommand, DeleteServiceHandler(event_store, read_model_repo, event_producer))
+    bus.register(
+        BulkCreateServicesCommand,
+        BulkCreateServicesHandler(event_store, read_model_repo, event_producer),
+    )
+    return bus
+
+
+def _get_query_bus(request: Request) -> QueryBus:
+    session = request.app.state.database.session()
+    read_model_repo = PostgresServiceReadModelRepository(session)
+
+    bus = QueryBus()
+    bus.register(GetServiceQuery, GetServiceHandler(read_model_repo))
+    bus.register(ListServicesQuery, ListServicesHandler(read_model_repo))
+    return bus
+
+
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ServiceResponse,
+)
+async def create_service(
+    body: CreateServiceRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> ServiceResponse:
+    service_id = await command_bus.dispatch(CreateServiceCommand(**body.model_dump()))
+    result = await query_bus.dispatch(GetServiceQuery(service_id=service_id))
+    return ServiceResponse(**result.model_dump())
+
+
+@router.get("", response_model=ServiceListResponse)
+async def list_services(
+    params: OffsetParams = Depends(),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> ServiceListResponse:
+    items, total = await query_bus.dispatch(
+        ListServicesQuery(
+            offset=params.offset,
+            limit=params.limit,
+        )
+    )
+    return ServiceListResponse(
+        items=[ServiceResponse(**i.model_dump()) for i in items],
+        total=total,
+        offset=params.offset,
+        limit=params.limit,
+    )
+
+
+@router.get("/{service_id}", response_model=ServiceResponse)
+async def get_service(
+    service_id: UUID,
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> ServiceResponse:
+    result = await query_bus.dispatch(GetServiceQuery(service_id=service_id))
+    return ServiceResponse(**result.model_dump())
+
+
+@router.patch("/{service_id}", response_model=ServiceResponse)
+async def update_service(
+    service_id: UUID,
+    body: UpdateServiceRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> ServiceResponse:
+    await command_bus.dispatch(UpdateServiceCommand(service_id=service_id, **body.model_dump(exclude_unset=True)))
+    result = await query_bus.dispatch(GetServiceQuery(service_id=service_id))
+    return ServiceResponse(**result.model_dump())
+
+
+@router.delete("/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_service(
+    service_id: UUID,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> None:
+    await command_bus.dispatch(DeleteServiceCommand(service_id=service_id))
+
+
+@router.post(
+    "/bulk",
+    status_code=status.HTTP_201_CREATED,
+    response_model=BulkCreateResponse,
+)
+async def bulk_create_services(
+    body: list[CreateServiceRequest],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkCreateResponse:
+    ids = await command_bus.dispatch(
+        BulkCreateServicesCommand(items=[CreateServiceCommand(**i.model_dump()) for i in body])
+    )
+    return BulkCreateResponse(ids=ids, count=len(ids))

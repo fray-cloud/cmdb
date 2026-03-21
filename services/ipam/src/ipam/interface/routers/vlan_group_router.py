@@ -1,0 +1,139 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Request, status
+
+from ipam.application.command_handlers import (
+    BulkCreateVLANGroupsHandler,
+    CreateVLANGroupHandler,
+    DeleteVLANGroupHandler,
+    UpdateVLANGroupHandler,
+)
+from ipam.application.commands import (
+    BulkCreateVLANGroupsCommand,
+    CreateVLANGroupCommand,
+    DeleteVLANGroupCommand,
+    UpdateVLANGroupCommand,
+)
+from ipam.application.queries import GetVLANGroupQuery, ListVLANGroupsQuery
+from ipam.application.query_handlers import GetVLANGroupHandler, ListVLANGroupsHandler
+from ipam.infrastructure.read_model_repository import PostgresVLANGroupReadModelRepository
+from ipam.interface.schemas import (
+    BulkCreateResponse,
+    CreateVLANGroupRequest,
+    UpdateVLANGroupRequest,
+    VLANGroupListResponse,
+    VLANGroupResponse,
+)
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
+
+router = APIRouter(prefix="/vlan-groups", tags=["vlan-groups"])
+
+
+def _get_command_bus(request: Request) -> CommandBus:
+    session = request.app.state.database.session()
+    read_model_repo = PostgresVLANGroupReadModelRepository(session)
+    event_store = request.app.state.event_store
+    event_producer = request.app.state.event_producer
+
+    bus = CommandBus()
+    bus.register(CreateVLANGroupCommand, CreateVLANGroupHandler(event_store, read_model_repo, event_producer))
+    bus.register(UpdateVLANGroupCommand, UpdateVLANGroupHandler(event_store, read_model_repo, event_producer))
+    bus.register(DeleteVLANGroupCommand, DeleteVLANGroupHandler(event_store, read_model_repo, event_producer))
+    bus.register(
+        BulkCreateVLANGroupsCommand,
+        BulkCreateVLANGroupsHandler(event_store, read_model_repo, event_producer),
+    )
+    return bus
+
+
+def _get_query_bus(request: Request) -> QueryBus:
+    session = request.app.state.database.session()
+    read_model_repo = PostgresVLANGroupReadModelRepository(session)
+
+    bus = QueryBus()
+    bus.register(GetVLANGroupQuery, GetVLANGroupHandler(read_model_repo))
+    bus.register(ListVLANGroupsQuery, ListVLANGroupsHandler(read_model_repo))
+    return bus
+
+
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    response_model=VLANGroupResponse,
+)
+async def create_vlan_group(
+    body: CreateVLANGroupRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> VLANGroupResponse:
+    vlan_group_id = await command_bus.dispatch(CreateVLANGroupCommand(**body.model_dump()))
+    result = await query_bus.dispatch(GetVLANGroupQuery(vlan_group_id=vlan_group_id))
+    return VLANGroupResponse(**result.model_dump())
+
+
+@router.get("", response_model=VLANGroupListResponse)
+async def list_vlan_groups(
+    params: OffsetParams = Depends(),  # noqa: B008
+    tenant_id: UUID | None = None,
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> VLANGroupListResponse:
+    items, total = await query_bus.dispatch(
+        ListVLANGroupsQuery(
+            offset=params.offset,
+            limit=params.limit,
+            tenant_id=tenant_id,
+        )
+    )
+    return VLANGroupListResponse(
+        items=[VLANGroupResponse(**i.model_dump()) for i in items],
+        total=total,
+        offset=params.offset,
+        limit=params.limit,
+    )
+
+
+@router.get("/{vlan_group_id}", response_model=VLANGroupResponse)
+async def get_vlan_group(
+    vlan_group_id: UUID,
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> VLANGroupResponse:
+    result = await query_bus.dispatch(GetVLANGroupQuery(vlan_group_id=vlan_group_id))
+    return VLANGroupResponse(**result.model_dump())
+
+
+@router.patch("/{vlan_group_id}", response_model=VLANGroupResponse)
+async def update_vlan_group(
+    vlan_group_id: UUID,
+    body: UpdateVLANGroupRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> VLANGroupResponse:
+    await command_bus.dispatch(
+        UpdateVLANGroupCommand(vlan_group_id=vlan_group_id, **body.model_dump(exclude_unset=True))
+    )
+    result = await query_bus.dispatch(GetVLANGroupQuery(vlan_group_id=vlan_group_id))
+    return VLANGroupResponse(**result.model_dump())
+
+
+@router.delete("/{vlan_group_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_vlan_group(
+    vlan_group_id: UUID,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> None:
+    await command_bus.dispatch(DeleteVLANGroupCommand(vlan_group_id=vlan_group_id))
+
+
+@router.post(
+    "/bulk",
+    status_code=status.HTTP_201_CREATED,
+    response_model=BulkCreateResponse,
+)
+async def bulk_create_vlan_groups(
+    body: list[CreateVLANGroupRequest],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkCreateResponse:
+    ids = await command_bus.dispatch(
+        BulkCreateVLANGroupsCommand(items=[CreateVLANGroupCommand(**i.model_dump()) for i in body])
+    )
+    return BulkCreateResponse(ids=ids, count=len(ids))

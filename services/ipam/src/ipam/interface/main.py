@@ -55,6 +55,9 @@ from ipam.interface.routers.ip_address_router import router as ip_address_router
 from ipam.interface.routers.ip_range_router import router as ip_range_router
 from ipam.interface.routers.prefix_router import router as prefix_router
 from ipam.interface.routers.rir_router import router as rir_router
+from ipam.interface.routers.route_target_router import router as route_target_router
+from ipam.interface.routers.service_router import router as service_router
+from ipam.interface.routers.vlan_group_router import router as vlan_group_router
 from ipam.interface.routers.vlan_router import router as vlan_router
 from ipam.interface.routers.vrf_router import router as vrf_router
 from shared.api.errors import domain_exception_handler
@@ -177,6 +180,9 @@ def create_app() -> FastAPI:
     app.include_router(rir_router, prefix="/api/v1")
     app.include_router(asn_router, prefix="/api/v1")
     app.include_router(fhrp_group_router, prefix="/api/v1")
+    app.include_router(route_target_router, prefix="/api/v1")
+    app.include_router(vlan_group_router, prefix="/api/v1")
+    app.include_router(service_router, prefix="/api/v1")
     return app
 
 

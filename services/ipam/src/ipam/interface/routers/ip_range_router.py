@@ -16,9 +16,12 @@ from ipam.application.commands import (
     DeleteIPRangeCommand,
     UpdateIPRangeCommand,
 )
-from ipam.application.queries import GetIPRangeQuery, ListIPRangesQuery
-from ipam.application.query_handlers import GetIPRangeHandler, ListIPRangesHandler
-from ipam.infrastructure.read_model_repository import PostgresIPRangeReadModelRepository
+from ipam.application.queries import GetIPRangeQuery, GetIPRangeUtilizationQuery, ListIPRangesQuery
+from ipam.application.query_handlers import GetIPRangeHandler, GetIPRangeUtilizationHandler, ListIPRangesHandler
+from ipam.infrastructure.read_model_repository import (
+    PostgresIPAddressReadModelRepository,
+    PostgresIPRangeReadModelRepository,
+)
 from ipam.interface.schemas import (
     BulkCreateResponse,
     ChangeStatusRequest,
@@ -66,10 +69,12 @@ def _get_command_bus(request: Request) -> CommandBus:
 def _get_query_bus(request: Request) -> QueryBus:
     session = request.app.state.database.session()
     read_model_repo = PostgresIPRangeReadModelRepository(session)
+    ip_repo = PostgresIPAddressReadModelRepository(session)
 
     bus = QueryBus()
     bus.register(GetIPRangeQuery, GetIPRangeHandler(read_model_repo))
     bus.register(ListIPRangesQuery, ListIPRangesHandler(read_model_repo))
+    bus.register(GetIPRangeUtilizationQuery, GetIPRangeUtilizationHandler(read_model_repo, ip_repo))
     return bus
 
 
@@ -167,3 +172,12 @@ async def bulk_create_ip_ranges(
         BulkCreateIPRangesCommand(items=[CreateIPRangeCommand(**i.model_dump()) for i in body])
     )
     return BulkCreateResponse(ids=ids, count=len(ids))
+
+
+@router.get("/{range_id}/utilization")
+async def get_ip_range_utilization(
+    range_id: UUID,
+    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+) -> dict:
+    utilization = await query_bus.dispatch(GetIPRangeUtilizationQuery(range_id=range_id))
+    return {"range_id": range_id, "utilization": utilization}

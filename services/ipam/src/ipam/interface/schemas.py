@@ -111,6 +111,8 @@ class CreateVRFRequest(BaseModel):
     rd: str | None = None
     tenant_id: UUID | None = None
     description: str = ""
+    import_targets: list[UUID] | None = None
+    export_targets: list[UUID] | None = None
     custom_fields: dict = {}
     tags: list[UUID] = []
 
@@ -118,6 +120,8 @@ class CreateVRFRequest(BaseModel):
 class UpdateVRFRequest(BaseModel):
     name: str | None = None
     description: str | None = None
+    import_targets: list[UUID] | None = None
+    export_targets: list[UUID] | None = None
     custom_fields: dict | None = None
     tags: list[UUID] | None = None
 
@@ -128,6 +132,8 @@ class VRFResponse(BaseModel):
     rd: str | None
     tenant_id: UUID | None
     description: str
+    import_targets: list[UUID]
+    export_targets: list[UUID]
     custom_fields: dict
     tags: list[UUID]
     created_at: datetime
@@ -340,6 +346,129 @@ class FHRPGroupResponse(BaseModel):
 
 class FHRPGroupListResponse(BaseModel):
     items: list[FHRPGroupResponse]
+    total: int
+    offset: int
+    limit: int
+
+
+# --- RouteTarget ---
+
+
+class CreateRouteTargetRequest(BaseModel):
+    name: str
+    tenant_id: UUID | None = None
+    description: str = ""
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class UpdateRouteTargetRequest(BaseModel):
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class RouteTargetResponse(BaseModel):
+    id: UUID
+    name: str
+    tenant_id: UUID | None
+    description: str
+    custom_fields: dict
+    tags: list[UUID]
+    created_at: datetime
+    updated_at: datetime
+
+
+class RouteTargetListResponse(BaseModel):
+    items: list[RouteTargetResponse]
+    total: int
+    offset: int
+    limit: int
+
+
+# --- VLANGroup ---
+
+
+class CreateVLANGroupRequest(BaseModel):
+    name: str
+    slug: str
+    min_vid: int = 1
+    max_vid: int = 4094
+    tenant_id: UUID | None = None
+    description: str = ""
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class UpdateVLANGroupRequest(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    min_vid: int | None = None
+    max_vid: int | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class VLANGroupResponse(BaseModel):
+    id: UUID
+    name: str
+    slug: str
+    min_vid: int
+    max_vid: int
+    tenant_id: UUID | None
+    description: str
+    custom_fields: dict
+    tags: list[UUID]
+    created_at: datetime
+    updated_at: datetime
+
+
+class VLANGroupListResponse(BaseModel):
+    items: list[VLANGroupResponse]
+    total: int
+    offset: int
+    limit: int
+
+
+# --- Service ---
+
+
+class CreateServiceRequest(BaseModel):
+    name: str
+    protocol: str = "tcp"
+    ports: list[int] = []
+    ip_addresses: list[UUID] = []
+    description: str = ""
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class UpdateServiceRequest(BaseModel):
+    name: str | None = None
+    protocol: str | None = None
+    ports: list[int] | None = None
+    ip_addresses: list[UUID] | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class ServiceResponse(BaseModel):
+    id: UUID
+    name: str
+    protocol: str
+    ports: list[int]
+    ip_addresses: list[UUID]
+    description: str
+    custom_fields: dict
+    tags: list[UUID]
+    created_at: datetime
+    updated_at: datetime
+
+
+class ServiceListResponse(BaseModel):
+    items: list[ServiceResponse]
     total: int
     offset: int
     limit: int
