@@ -171,8 +171,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await database.close()
 
 
+OPENAPI_TAGS = [
+    {"name": "prefixes", "description": "IP prefix (subnet) management"},
+    {"name": "ip-addresses", "description": "IP address management"},
+    {"name": "vrfs", "description": "Virtual Routing and Forwarding instances"},
+    {"name": "vlans", "description": "VLAN management"},
+    {"name": "ip-ranges", "description": "IP address range management"},
+    {"name": "rirs", "description": "Regional Internet Registries"},
+    {"name": "asns", "description": "Autonomous System Numbers"},
+    {"name": "fhrp-groups", "description": "First Hop Redundancy Protocol groups"},
+    {"name": "route-targets", "description": "BGP route targets for VRF import/export"},
+    {"name": "vlan-groups", "description": "VLAN group management"},
+    {"name": "services", "description": "Network service (TCP/UDP/SCTP) management"},
+]
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="CMDB IPAM Service", lifespan=lifespan)
+    app = FastAPI(
+        title="CMDB IPAM Service",
+        version="1.0.0",
+        description="IP Address Management service — prefixes, addresses, VRFs, VLANs, and more.",
+        openapi_tags=OPENAPI_TAGS,
+        lifespan=lifespan,
+    )
     app.add_middleware(CorrelationIdMiddleware)
     app.add_exception_handler(DomainError, domain_exception_handler)
     app.include_router(prefix_router, prefix="/api/v1")
