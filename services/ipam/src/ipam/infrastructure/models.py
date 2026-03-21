@@ -56,6 +56,8 @@ class VRFReadModel(IPAMBase):
     id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), index=True)
     rd: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    import_targets: Mapped[list] = mapped_column(JSONB, default=list)
+    export_targets: Mapped[list] = mapped_column(JSONB, default=list)
     tenant_id: Mapped[UUID | None] = mapped_column(SAUUID(as_uuid=True), nullable=True)
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
@@ -148,6 +150,59 @@ class FHRPGroupReadModel(IPAMBase):
     auth_type: Mapped[str] = mapped_column(String(20))
     auth_key: Mapped[str] = mapped_column(String(255), default="")
     name: Mapped[str] = mapped_column(String(255), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
+    tags: Mapped[list] = mapped_column(JSONB, default=list)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class RouteTargetReadModel(IPAMBase):
+    __tablename__ = "route_targets_read"
+
+    id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), index=True)
+    tenant_id: Mapped[UUID | None] = mapped_column(SAUUID(as_uuid=True), nullable=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
+    tags: Mapped[list] = mapped_column(JSONB, default=list)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class VLANGroupReadModel(IPAMBase):
+    __tablename__ = "vlan_groups_read"
+
+    id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    min_vid: Mapped[int] = mapped_column(Integer)
+    max_vid: Mapped[int] = mapped_column(Integer)
+    tenant_id: Mapped[UUID | None] = mapped_column(SAUUID(as_uuid=True), nullable=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
+    tags: Mapped[list] = mapped_column(JSONB, default=list)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ServiceReadModel(IPAMBase):
+    __tablename__ = "services_read"
+
+    id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), index=True)
+    protocol: Mapped[str] = mapped_column(String(10))
+    ports: Mapped[list] = mapped_column(JSONB, default=list)
+    ip_addresses: Mapped[list] = mapped_column(JSONB, default=list)
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)

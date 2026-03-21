@@ -7,6 +7,9 @@ from ipam.application.dto import (
     IPAddressDTO,
     IPRangeDTO,
     PrefixDTO,
+    RouteTargetDTO,
+    ServiceDTO,
+    VLANGroupDTO,
 )
 from ipam.application.read_model import (
     ASNReadModelRepository,
@@ -15,6 +18,9 @@ from ipam.application.read_model import (
     IPRangeReadModelRepository,
     PrefixReadModelRepository,
     RIRReadModelRepository,
+    RouteTargetReadModelRepository,
+    ServiceReadModelRepository,
+    VLANGroupReadModelRepository,
     VLANReadModelRepository,
     VRFReadModelRepository,
 )
@@ -367,6 +373,87 @@ class ListFHRPGroupsHandler(QueryHandler[tuple[list[FHRPGroupDTO], int]]):
     async def handle(self, query: Query) -> tuple[list[FHRPGroupDTO], int]:
         items, total = await self._repo.find_all(offset=query.offset, limit=query.limit)
         return [FHRPGroupDTO(**item) for item in items], total
+
+
+# ---------------------------------------------------------------------------
+# RouteTarget
+# ---------------------------------------------------------------------------
+
+
+class GetRouteTargetHandler(QueryHandler[RouteTargetDTO]):
+    def __init__(self, read_model_repo: RouteTargetReadModelRepository) -> None:
+        self._repo = read_model_repo
+
+    async def handle(self, query: Query) -> RouteTargetDTO:
+        data = await self._repo.find_by_id(query.route_target_id)
+        if data is None:
+            raise EntityNotFoundError(f"RouteTarget {query.route_target_id} not found")
+        return RouteTargetDTO(**data)
+
+
+class ListRouteTargetsHandler(QueryHandler[tuple[list[RouteTargetDTO], int]]):
+    def __init__(self, read_model_repo: RouteTargetReadModelRepository) -> None:
+        self._repo = read_model_repo
+
+    async def handle(self, query: Query) -> tuple[list[RouteTargetDTO], int]:
+        filters: list[FilterParam] = []
+        if query.tenant_id is not None:
+            filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
+        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        return [RouteTargetDTO(**item) for item in items], total
+
+
+# ---------------------------------------------------------------------------
+# VLANGroup
+# ---------------------------------------------------------------------------
+
+
+class GetVLANGroupHandler(QueryHandler[VLANGroupDTO]):
+    def __init__(self, read_model_repo: VLANGroupReadModelRepository) -> None:
+        self._repo = read_model_repo
+
+    async def handle(self, query: Query) -> VLANGroupDTO:
+        data = await self._repo.find_by_id(query.vlan_group_id)
+        if data is None:
+            raise EntityNotFoundError(f"VLANGroup {query.vlan_group_id} not found")
+        return VLANGroupDTO(**data)
+
+
+class ListVLANGroupsHandler(QueryHandler[tuple[list[VLANGroupDTO], int]]):
+    def __init__(self, read_model_repo: VLANGroupReadModelRepository) -> None:
+        self._repo = read_model_repo
+
+    async def handle(self, query: Query) -> tuple[list[VLANGroupDTO], int]:
+        filters: list[FilterParam] = []
+        if query.tenant_id is not None:
+            filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
+        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        return [VLANGroupDTO(**item) for item in items], total
+
+
+# ---------------------------------------------------------------------------
+# Service
+# ---------------------------------------------------------------------------
+
+
+class GetServiceHandler(QueryHandler[ServiceDTO]):
+    def __init__(self, read_model_repo: ServiceReadModelRepository) -> None:
+        self._repo = read_model_repo
+
+    async def handle(self, query: Query) -> ServiceDTO:
+        data = await self._repo.find_by_id(query.service_id)
+        if data is None:
+            raise EntityNotFoundError(f"Service {query.service_id} not found")
+        return ServiceDTO(**data)
+
+
+class ListServicesHandler(QueryHandler[tuple[list[ServiceDTO], int]]):
+    def __init__(self, read_model_repo: ServiceReadModelRepository) -> None:
+        self._repo = read_model_repo
+
+    async def handle(self, query: Query) -> tuple[list[ServiceDTO], int]:
+        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit)
+        return [ServiceDTO(**item) for item in items], total
 
 
 # ---------------------------------------------------------------------------

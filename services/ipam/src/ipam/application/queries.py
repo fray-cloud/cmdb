@@ -133,3 +133,41 @@ class GetFHRPGroupQuery(Query):
 class ListFHRPGroupsQuery(Query):
     offset: int = 0
     limit: int = 50
+
+
+# --- RouteTarget ---
+
+
+class GetRouteTargetQuery(Query):
+    route_target_id: UUID
+
+
+class ListRouteTargetsQuery(Query):
+    offset: int = 0
+    limit: int = 50
+    tenant_id: UUID | None = None
+
+
+# --- VLANGroup ---
+
+
+class GetVLANGroupQuery(Query):
+    vlan_group_id: UUID
+
+
+class ListVLANGroupsQuery(Query):
+    offset: int = 0
+    limit: int = 50
+    tenant_id: UUID | None = None
+
+
+# --- Service ---
+
+
+class GetServiceQuery(Query):
+    service_id: UUID
+
+
+class ListServicesQuery(Query):
+    offset: int = 0
+    limit: int = 50

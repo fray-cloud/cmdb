@@ -37,6 +37,8 @@ class VRFDTO(BaseModel):
     id: UUID
     name: str
     rd: str | None
+    import_targets: list[UUID]
+    export_targets: list[UUID]
     tenant_id: UUID | None
     description: str
     custom_fields: dict
@@ -103,6 +105,44 @@ class FHRPGroupDTO(BaseModel):
     group_id_value: int
     auth_type: str
     name: str
+    description: str
+    custom_fields: dict
+    tags: list[UUID]
+    created_at: datetime
+    updated_at: datetime
+
+
+class RouteTargetDTO(BaseModel):
+    id: UUID
+    name: str
+    tenant_id: UUID | None
+    description: str
+    custom_fields: dict
+    tags: list[UUID]
+    created_at: datetime
+    updated_at: datetime
+
+
+class VLANGroupDTO(BaseModel):
+    id: UUID
+    name: str
+    slug: str
+    min_vid: int
+    max_vid: int
+    tenant_id: UUID | None
+    description: str
+    custom_fields: dict
+    tags: list[UUID]
+    created_at: datetime
+    updated_at: datetime
+
+
+class ServiceDTO(BaseModel):
+    id: UUID
+    name: str
+    protocol: str
+    ports: list[int]
+    ip_addresses: list[UUID]
     description: str
     custom_fields: dict
     tags: list[UUID]

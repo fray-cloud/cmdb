@@ -70,3 +70,17 @@ class ASNReadModelRepository(ReadModelRepository):
 
 class FHRPGroupReadModelRepository(ReadModelRepository):
     pass
+
+
+class RouteTargetReadModelRepository(ReadModelRepository):
+    @abstractmethod
+    async def find_by_name(self, name: str) -> dict | None: ...
+
+
+class VLANGroupReadModelRepository(ReadModelRepository):
+    @abstractmethod
+    async def find_by_slug(self, slug: str) -> dict | None: ...
+
+
+class ServiceReadModelRepository(ReadModelRepository):
+    pass

@@ -15,6 +15,9 @@ from ipam.application.read_model import (
     IPRangeReadModelRepository,
     PrefixReadModelRepository,
     RIRReadModelRepository,
+    RouteTargetReadModelRepository,
+    ServiceReadModelRepository,
+    VLANGroupReadModelRepository,
     VLANReadModelRepository,
     VRFReadModelRepository,
 )
@@ -25,6 +28,9 @@ from ipam.infrastructure.models import (
     IPRangeReadModel,
     PrefixReadModel,
     RIRReadModel,
+    RouteTargetReadModel,
+    ServiceReadModel,
+    VLANGroupReadModel,
     VLANReadModel,
     VRFReadModel,
 )
@@ -271,6 +277,8 @@ class PostgresVRFReadModelRepository(VRFReadModelRepository):
             id=aggregate.id,
             name=aggregate.name,
             rd=aggregate.rd.rd if aggregate.rd else None,
+            import_targets=[str(t) for t in aggregate.import_targets],
+            export_targets=[str(t) for t in aggregate.export_targets],
             tenant_id=aggregate.tenant_id,
             description=aggregate.description,
             custom_fields=aggregate.custom_fields,
@@ -323,6 +331,8 @@ class PostgresVRFReadModelRepository(VRFReadModelRepository):
             "id": model.id,
             "name": model.name,
             "rd": model.rd,
+            "import_targets": [UUID(t) if isinstance(t, str) else t for t in (model.import_targets or [])],
+            "export_targets": [UUID(t) if isinstance(t, str) else t for t in (model.export_targets or [])],
             "tenant_id": model.tenant_id,
             "description": model.description,
             "custom_fields": model.custom_fields,
@@ -697,6 +707,226 @@ class PostgresFHRPGroupReadModelRepository(FHRPGroupReadModelRepository):
             "auth_type": model.auth_type,
             "auth_key": model.auth_key,
             "name": model.name,
+            "description": model.description,
+            "custom_fields": model.custom_fields,
+            "tags": [UUID(t) if isinstance(t, str) else t for t in (model.tags or [])],
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+
+# ---------------------------------------------------------------------------
+# RouteTarget
+# ---------------------------------------------------------------------------
+
+
+class PostgresRouteTargetReadModelRepository(RouteTargetReadModelRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def upsert_from_aggregate(self, aggregate: Any) -> None:
+        model = RouteTargetReadModel(
+            id=aggregate.id,
+            name=aggregate.name.rd if aggregate.name else "",
+            tenant_id=aggregate.tenant_id,
+            description=aggregate.description,
+            custom_fields=aggregate.custom_fields,
+            tags=[str(t) for t in aggregate.tags],
+            is_deleted=aggregate._deleted,
+        )
+        await self._session.merge(model)
+        await self._session.flush()
+
+    async def find_by_id(self, entity_id: UUID) -> dict | None:
+        model = await self._session.get(RouteTargetReadModel, entity_id)
+        if model is None or model.is_deleted:
+            return None
+        return self._to_dict(model)
+
+    async def find_all(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+        filters: list[FilterParam] | None = None,
+    ) -> tuple[list[dict], int]:
+        stmt = select(RouteTargetReadModel).where(RouteTargetReadModel.is_deleted == sa.false())
+        if filters:
+            stmt = apply_filters(stmt, RouteTargetReadModel, filters)
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = (await self._session.execute(count_stmt)).scalar_one()
+        stmt = stmt.offset(offset).limit(limit).order_by(RouteTargetReadModel.created_at.desc())
+        result = await self._session.execute(stmt)
+        return [self._to_dict(r) for r in result.scalars().all()], total
+
+    async def mark_deleted(self, entity_id: UUID) -> None:
+        model = await self._session.get(RouteTargetReadModel, entity_id)
+        if model:
+            model.is_deleted = True
+            await self._session.flush()
+
+    async def find_by_name(self, name: str) -> dict | None:
+        stmt = select(RouteTargetReadModel).where(
+            RouteTargetReadModel.name == name,
+            RouteTargetReadModel.is_deleted == sa.false(),
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    @staticmethod
+    def _to_dict(model: RouteTargetReadModel) -> dict:
+        return {
+            "id": model.id,
+            "name": model.name,
+            "tenant_id": model.tenant_id,
+            "description": model.description,
+            "custom_fields": model.custom_fields,
+            "tags": [UUID(t) if isinstance(t, str) else t for t in (model.tags or [])],
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+
+# ---------------------------------------------------------------------------
+# VLANGroup
+# ---------------------------------------------------------------------------
+
+
+class PostgresVLANGroupReadModelRepository(VLANGroupReadModelRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def upsert_from_aggregate(self, aggregate: Any) -> None:
+        model = VLANGroupReadModel(
+            id=aggregate.id,
+            name=aggregate.name,
+            slug=aggregate.slug,
+            min_vid=aggregate.min_vid,
+            max_vid=aggregate.max_vid,
+            tenant_id=aggregate.tenant_id,
+            description=aggregate.description,
+            custom_fields=aggregate.custom_fields,
+            tags=[str(t) for t in aggregate.tags],
+            is_deleted=aggregate._deleted,
+        )
+        await self._session.merge(model)
+        await self._session.flush()
+
+    async def find_by_id(self, entity_id: UUID) -> dict | None:
+        model = await self._session.get(VLANGroupReadModel, entity_id)
+        if model is None or model.is_deleted:
+            return None
+        return self._to_dict(model)
+
+    async def find_all(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+        filters: list[FilterParam] | None = None,
+    ) -> tuple[list[dict], int]:
+        stmt = select(VLANGroupReadModel).where(VLANGroupReadModel.is_deleted == sa.false())
+        if filters:
+            stmt = apply_filters(stmt, VLANGroupReadModel, filters)
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = (await self._session.execute(count_stmt)).scalar_one()
+        stmt = stmt.offset(offset).limit(limit).order_by(VLANGroupReadModel.created_at.desc())
+        result = await self._session.execute(stmt)
+        return [self._to_dict(r) for r in result.scalars().all()], total
+
+    async def mark_deleted(self, entity_id: UUID) -> None:
+        model = await self._session.get(VLANGroupReadModel, entity_id)
+        if model:
+            model.is_deleted = True
+            await self._session.flush()
+
+    async def find_by_slug(self, slug: str) -> dict | None:
+        stmt = select(VLANGroupReadModel).where(
+            VLANGroupReadModel.slug == slug,
+            VLANGroupReadModel.is_deleted == sa.false(),
+        )
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return self._to_dict(model) if model else None
+
+    @staticmethod
+    def _to_dict(model: VLANGroupReadModel) -> dict:
+        return {
+            "id": model.id,
+            "name": model.name,
+            "slug": model.slug,
+            "min_vid": model.min_vid,
+            "max_vid": model.max_vid,
+            "tenant_id": model.tenant_id,
+            "description": model.description,
+            "custom_fields": model.custom_fields,
+            "tags": [UUID(t) if isinstance(t, str) else t for t in (model.tags or [])],
+            "created_at": model.created_at,
+            "updated_at": model.updated_at,
+        }
+
+
+# ---------------------------------------------------------------------------
+# Service
+# ---------------------------------------------------------------------------
+
+
+class PostgresServiceReadModelRepository(ServiceReadModelRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def upsert_from_aggregate(self, aggregate: Any) -> None:
+        model = ServiceReadModel(
+            id=aggregate.id,
+            name=aggregate.name,
+            protocol=aggregate.protocol.value if aggregate.protocol else "tcp",
+            ports=aggregate.ports,
+            ip_addresses=[str(ip) for ip in aggregate.ip_addresses],
+            description=aggregate.description,
+            custom_fields=aggregate.custom_fields,
+            tags=[str(t) for t in aggregate.tags],
+            is_deleted=aggregate._deleted,
+        )
+        await self._session.merge(model)
+        await self._session.flush()
+
+    async def find_by_id(self, entity_id: UUID) -> dict | None:
+        model = await self._session.get(ServiceReadModel, entity_id)
+        if model is None or model.is_deleted:
+            return None
+        return self._to_dict(model)
+
+    async def find_all(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+        filters: list[FilterParam] | None = None,
+    ) -> tuple[list[dict], int]:
+        stmt = select(ServiceReadModel).where(ServiceReadModel.is_deleted == sa.false())
+        if filters:
+            stmt = apply_filters(stmt, ServiceReadModel, filters)
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        total = (await self._session.execute(count_stmt)).scalar_one()
+        stmt = stmt.offset(offset).limit(limit).order_by(ServiceReadModel.created_at.desc())
+        result = await self._session.execute(stmt)
+        return [self._to_dict(r) for r in result.scalars().all()], total
+
+    async def mark_deleted(self, entity_id: UUID) -> None:
+        model = await self._session.get(ServiceReadModel, entity_id)
+        if model:
+            model.is_deleted = True
+            await self._session.flush()
+
+    @staticmethod
+    def _to_dict(model: ServiceReadModel) -> dict:
+        return {
+            "id": model.id,
+            "name": model.name,
+            "protocol": model.protocol,
+            "ports": model.ports or [],
+            "ip_addresses": [UUID(ip) if isinstance(ip, str) else ip for ip in (model.ip_addresses or [])],
             "description": model.description,
             "custom_fields": model.custom_fields,
             "tags": [UUID(t) if isinstance(t, str) else t for t in (model.tags or [])],

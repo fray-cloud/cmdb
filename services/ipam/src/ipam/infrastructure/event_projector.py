@@ -26,8 +26,17 @@ from ipam.domain.events import (
     RIRCreated,
     RIRDeleted,
     RIRUpdated,
+    RouteTargetCreated,
+    RouteTargetDeleted,
+    RouteTargetUpdated,
+    ServiceCreated,
+    ServiceDeleted,
+    ServiceUpdated,
     VLANCreated,
     VLANDeleted,
+    VLANGroupCreated,
+    VLANGroupDeleted,
+    VLANGroupUpdated,
     VLANStatusChanged,
     VLANUpdated,
     VRFCreated,
@@ -41,6 +50,9 @@ from ipam.infrastructure.models import (
     IPRangeReadModel,
     PrefixReadModel,
     RIRReadModel,
+    RouteTargetReadModel,
+    ServiceReadModel,
+    VLANGroupReadModel,
     VLANReadModel,
     VRFReadModel,
 )
@@ -155,6 +167,8 @@ class IPAMEventProjector:
                 id=event.aggregate_id,
                 name=event.name,
                 rd=event.rd,
+                import_targets=[str(t) for t in event.import_targets],
+                export_targets=[str(t) for t in event.export_targets],
                 tenant_id=event.tenant_id,
                 description=event.description,
                 custom_fields=event.custom_fields,
@@ -170,6 +184,10 @@ class IPAMEventProjector:
         values: dict = {}
         if event.name is not None:
             values["name"] = event.name
+        if event.import_targets is not None:
+            values["import_targets"] = [str(t) for t in event.import_targets]
+        if event.export_targets is not None:
+            values["export_targets"] = [str(t) for t in event.export_targets]
         if event.description is not None:
             values["description"] = event.description
         if event.custom_fields is not None:
@@ -372,6 +390,126 @@ class IPAMEventProjector:
     async def _handle_fhrp_group_deleted(self, event: DomainEvent) -> None:
         await self._update_model(FHRPGroupReadModel, event.aggregate_id, {"is_deleted": True})
 
+    # --- RouteTarget ---
+
+    async def _handle_route_target_created(self, event: DomainEvent) -> None:
+        assert isinstance(event, RouteTargetCreated)
+        async with self._session_factory() as session:
+            stmt = insert(RouteTargetReadModel).values(
+                id=event.aggregate_id,
+                name=event.name,
+                tenant_id=event.tenant_id,
+                description=event.description,
+                custom_fields=event.custom_fields,
+                tags=[str(t) for t in event.tags],
+                is_deleted=False,
+            )
+            stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=dict(stmt.excluded))
+            await session.execute(stmt)
+            await session.commit()
+
+    async def _handle_route_target_updated(self, event: DomainEvent) -> None:
+        assert isinstance(event, RouteTargetUpdated)
+        values: dict = {}
+        if event.description is not None:
+            values["description"] = event.description
+        if event.tenant_id is not None:
+            values["tenant_id"] = event.tenant_id
+        if event.custom_fields is not None:
+            values["custom_fields"] = event.custom_fields
+        if event.tags is not None:
+            values["tags"] = [str(t) for t in event.tags]
+        if values:
+            await self._update_model(RouteTargetReadModel, event.aggregate_id, values)
+
+    async def _handle_route_target_deleted(self, event: DomainEvent) -> None:
+        await self._update_model(RouteTargetReadModel, event.aggregate_id, {"is_deleted": True})
+
+    # --- VLANGroup ---
+
+    async def _handle_vlan_group_created(self, event: DomainEvent) -> None:
+        assert isinstance(event, VLANGroupCreated)
+        async with self._session_factory() as session:
+            stmt = insert(VLANGroupReadModel).values(
+                id=event.aggregate_id,
+                name=event.name,
+                slug=event.slug,
+                min_vid=event.min_vid,
+                max_vid=event.max_vid,
+                tenant_id=event.tenant_id,
+                description=event.description,
+                custom_fields=event.custom_fields,
+                tags=[str(t) for t in event.tags],
+                is_deleted=False,
+            )
+            stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=dict(stmt.excluded))
+            await session.execute(stmt)
+            await session.commit()
+
+    async def _handle_vlan_group_updated(self, event: DomainEvent) -> None:
+        assert isinstance(event, VLANGroupUpdated)
+        values: dict = {}
+        if event.name is not None:
+            values["name"] = event.name
+        if event.description is not None:
+            values["description"] = event.description
+        if event.min_vid is not None:
+            values["min_vid"] = event.min_vid
+        if event.max_vid is not None:
+            values["max_vid"] = event.max_vid
+        if event.custom_fields is not None:
+            values["custom_fields"] = event.custom_fields
+        if event.tags is not None:
+            values["tags"] = [str(t) for t in event.tags]
+        if values:
+            await self._update_model(VLANGroupReadModel, event.aggregate_id, values)
+
+    async def _handle_vlan_group_deleted(self, event: DomainEvent) -> None:
+        await self._update_model(VLANGroupReadModel, event.aggregate_id, {"is_deleted": True})
+
+    # --- Service ---
+
+    async def _handle_service_created(self, event: DomainEvent) -> None:
+        assert isinstance(event, ServiceCreated)
+        async with self._session_factory() as session:
+            stmt = insert(ServiceReadModel).values(
+                id=event.aggregate_id,
+                name=event.name,
+                protocol=event.protocol,
+                ports=event.ports,
+                ip_addresses=[str(ip) for ip in event.ip_addresses],
+                description=event.description,
+                custom_fields=event.custom_fields,
+                tags=[str(t) for t in event.tags],
+                is_deleted=False,
+            )
+            stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=dict(stmt.excluded))
+            await session.execute(stmt)
+            await session.commit()
+
+    async def _handle_service_updated(self, event: DomainEvent) -> None:
+        assert isinstance(event, ServiceUpdated)
+        values: dict = {}
+        if event.name is not None:
+            values["name"] = event.name
+        if event.protocol is not None:
+            values["protocol"] = event.protocol
+        if event.ports is not None:
+            values["ports"] = event.ports
+        if event.ip_addresses is not None:
+            values["ip_addresses"] = [str(ip) for ip in event.ip_addresses]
+        if event.description is not None:
+            values["description"] = event.description
+        if event.custom_fields is not None:
+            values["custom_fields"] = event.custom_fields
+        if event.tags is not None:
+            values["tags"] = [str(t) for t in event.tags]
+        if values:
+            await self._update_model(ServiceReadModel, event.aggregate_id, values)
+
+    async def _handle_service_deleted(self, event: DomainEvent) -> None:
+        await self._update_model(ServiceReadModel, event.aggregate_id, {"is_deleted": True})
+
     async def _update_model(self, model_cls: type, aggregate_id: UUID, values: dict) -> None:
         async with self._session_factory() as session:
             stmt = update(model_cls).where(model_cls.id == aggregate_id).values(**values)
@@ -414,3 +552,15 @@ class IPAMEventProjector:
         consumer.subscribe(FHRPGroupCreated, self._handle_fhrp_group_created)
         consumer.subscribe(FHRPGroupUpdated, self._handle_fhrp_group_updated)
         consumer.subscribe(FHRPGroupDeleted, self._handle_fhrp_group_deleted)
+
+        consumer.subscribe(RouteTargetCreated, self._handle_route_target_created)
+        consumer.subscribe(RouteTargetUpdated, self._handle_route_target_updated)
+        consumer.subscribe(RouteTargetDeleted, self._handle_route_target_deleted)
+
+        consumer.subscribe(VLANGroupCreated, self._handle_vlan_group_created)
+        consumer.subscribe(VLANGroupUpdated, self._handle_vlan_group_updated)
+        consumer.subscribe(VLANGroupDeleted, self._handle_vlan_group_deleted)
+
+        consumer.subscribe(ServiceCreated, self._handle_service_created)
+        consumer.subscribe(ServiceUpdated, self._handle_service_updated)
+        consumer.subscribe(ServiceDeleted, self._handle_service_deleted)

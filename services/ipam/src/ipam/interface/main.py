@@ -28,8 +28,17 @@ from ipam.domain.events import (
     RIRCreated,
     RIRDeleted,
     RIRUpdated,
+    RouteTargetCreated,
+    RouteTargetDeleted,
+    RouteTargetUpdated,
+    ServiceCreated,
+    ServiceDeleted,
+    ServiceUpdated,
     VLANCreated,
     VLANDeleted,
+    VLANGroupCreated,
+    VLANGroupDeleted,
+    VLANGroupUpdated,
     VLANStatusChanged,
     VLANUpdated,
     VRFCreated,
@@ -95,6 +104,18 @@ ALL_EVENTS = [
     FHRPGroupCreated,
     FHRPGroupUpdated,
     FHRPGroupDeleted,
+    # RouteTarget
+    RouteTargetCreated,
+    RouteTargetUpdated,
+    RouteTargetDeleted,
+    # VLANGroup
+    VLANGroupCreated,
+    VLANGroupUpdated,
+    VLANGroupDeleted,
+    # Service
+    ServiceCreated,
+    ServiceUpdated,
+    ServiceDeleted,
 ]
 
 

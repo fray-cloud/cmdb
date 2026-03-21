@@ -9,6 +9,9 @@ from ipam.application.commands import (
     BulkCreateIPRangesCommand,
     BulkCreatePrefixesCommand,
     BulkCreateRIRsCommand,
+    BulkCreateRouteTargetsCommand,
+    BulkCreateServicesCommand,
+    BulkCreateVLANGroupsCommand,
     BulkCreateVLANsCommand,
     BulkCreateVRFsCommand,
     ChangeIPAddressStatusCommand,
@@ -21,7 +24,10 @@ from ipam.application.commands import (
     CreateIPRangeCommand,
     CreatePrefixCommand,
     CreateRIRCommand,
+    CreateRouteTargetCommand,
+    CreateServiceCommand,
     CreateVLANCommand,
+    CreateVLANGroupCommand,
     CreateVRFCommand,
     DeleteASNCommand,
     DeleteFHRPGroupCommand,
@@ -29,7 +35,10 @@ from ipam.application.commands import (
     DeleteIPRangeCommand,
     DeletePrefixCommand,
     DeleteRIRCommand,
+    DeleteRouteTargetCommand,
+    DeleteServiceCommand,
     DeleteVLANCommand,
+    DeleteVLANGroupCommand,
     DeleteVRFCommand,
     UpdateASNCommand,
     UpdateFHRPGroupCommand,
@@ -37,7 +46,10 @@ from ipam.application.commands import (
     UpdateIPRangeCommand,
     UpdatePrefixCommand,
     UpdateRIRCommand,
+    UpdateRouteTargetCommand,
+    UpdateServiceCommand,
     UpdateVLANCommand,
+    UpdateVLANGroupCommand,
     UpdateVRFCommand,
 )
 from ipam.application.read_model import (
@@ -47,6 +59,9 @@ from ipam.application.read_model import (
     IPRangeReadModelRepository,
     PrefixReadModelRepository,
     RIRReadModelRepository,
+    RouteTargetReadModelRepository,
+    ServiceReadModelRepository,
+    VLANGroupReadModelRepository,
     VLANReadModelRepository,
     VRFReadModelRepository,
 )
@@ -56,15 +71,19 @@ from ipam.domain.ip_address import IPAddress
 from ipam.domain.ip_range import IPRange
 from ipam.domain.prefix import Prefix
 from ipam.domain.rir import RIR
+from ipam.domain.route_target import RouteTarget
+from ipam.domain.service import Service
 from ipam.domain.value_objects import (
     FHRPAuthType,
     FHRPProtocol,
     IPAddressStatus,
     IPRangeStatus,
     PrefixStatus,
+    ServiceProtocol,
     VLANStatus,
 )
 from ipam.domain.vlan import VLAN
+from ipam.domain.vlan_group import VLANGroup
 from ipam.domain.vrf import VRF
 from shared.cqrs.command import CommandHandler
 from shared.domain.exceptions import ConflictError, EntityNotFoundError
@@ -325,6 +344,8 @@ class CreateVRFHandler(CommandHandler[UUID]):
         vrf = VRF.create(
             name=command.name,
             rd=command.rd,
+            import_targets=command.import_targets,
+            export_targets=command.export_targets,
             tenant_id=command.tenant_id,
             description=command.description,
             custom_fields=command.custom_fields,
@@ -355,6 +376,8 @@ class UpdateVRFHandler(CommandHandler[None]):
 
         vrf.update(
             name=command.name,
+            import_targets=command.import_targets,
+            export_targets=command.export_targets,
             description=command.description,
             custom_fields=command.custom_fields,
             tags=command.tags,
@@ -995,6 +1018,8 @@ class BulkCreateVRFsHandler(CommandHandler[list[UUID]]):
             vrf = VRF.create(
                 name=item.name,
                 rd=item.rd,
+                import_targets=item.import_targets,
+                export_targets=item.export_targets,
                 tenant_id=item.tenant_id,
                 description=item.description,
                 custom_fields=item.custom_fields,
@@ -1171,5 +1196,378 @@ class BulkCreateFHRPGroupsHandler(CommandHandler[list[UUID]]):
             await self._read_model_repo.upsert_from_aggregate(group)
             all_events.extend(events)
             results.append(group.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+# ---------------------------------------------------------------------------
+# RouteTarget
+# ---------------------------------------------------------------------------
+
+
+class CreateRouteTargetHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RouteTargetReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateRouteTargetCommand) -> UUID:
+        rt = RouteTarget.create(
+            name=command.name,
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = rt.collect_uncommitted_events()
+        await self._event_store.append(rt.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(rt)
+        await self._event_producer.publish_many("ipam.events", events)
+        return rt.id
+
+
+class UpdateRouteTargetHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RouteTargetReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateRouteTargetCommand) -> None:
+        rt = await self._event_store.load_aggregate(RouteTarget, command.route_target_id)
+        if rt is None:
+            raise EntityNotFoundError(f"RouteTarget {command.route_target_id} not found")
+
+        rt.update(
+            description=command.description,
+            tenant_id=command.tenant_id,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = rt.collect_uncommitted_events()
+        await self._event_store.append(rt.id, new_events, expected_version=rt.version - len(new_events), aggregate=rt)
+        await self._read_model_repo.upsert_from_aggregate(rt)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteRouteTargetHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RouteTargetReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteRouteTargetCommand) -> None:
+        rt = await self._event_store.load_aggregate(RouteTarget, command.route_target_id)
+        if rt is None:
+            raise EntityNotFoundError(f"RouteTarget {command.route_target_id} not found")
+
+        rt.delete()
+
+        new_events = rt.collect_uncommitted_events()
+        await self._event_store.append(rt.id, new_events, expected_version=rt.version - len(new_events), aggregate=rt)
+        await self._read_model_repo.mark_deleted(rt.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# VLANGroup
+# ---------------------------------------------------------------------------
+
+
+class CreateVLANGroupHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateVLANGroupCommand) -> UUID:
+        group = VLANGroup.create(
+            name=command.name,
+            slug=command.slug,
+            min_vid=command.min_vid,
+            max_vid=command.max_vid,
+            tenant_id=command.tenant_id,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = group.collect_uncommitted_events()
+        await self._event_store.append(group.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(group)
+        await self._event_producer.publish_many("ipam.events", events)
+        return group.id
+
+
+class UpdateVLANGroupHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateVLANGroupCommand) -> None:
+        group = await self._event_store.load_aggregate(VLANGroup, command.vlan_group_id)
+        if group is None:
+            raise EntityNotFoundError(f"VLANGroup {command.vlan_group_id} not found")
+
+        group.update(
+            name=command.name,
+            description=command.description,
+            min_vid=command.min_vid,
+            max_vid=command.max_vid,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = group.collect_uncommitted_events()
+        await self._event_store.append(
+            group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+        )
+        await self._read_model_repo.upsert_from_aggregate(group)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteVLANGroupHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteVLANGroupCommand) -> None:
+        group = await self._event_store.load_aggregate(VLANGroup, command.vlan_group_id)
+        if group is None:
+            raise EntityNotFoundError(f"VLANGroup {command.vlan_group_id} not found")
+
+        group.delete()
+
+        new_events = group.collect_uncommitted_events()
+        await self._event_store.append(
+            group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+        )
+        await self._read_model_repo.mark_deleted(group.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# Service
+# ---------------------------------------------------------------------------
+
+
+class CreateServiceHandler(CommandHandler[UUID]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ServiceReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: CreateServiceCommand) -> UUID:
+        svc = Service.create(
+            name=command.name,
+            protocol=ServiceProtocol(command.protocol),
+            ports=command.ports,
+            ip_addresses=command.ip_addresses,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+        events = svc.collect_uncommitted_events()
+        await self._event_store.append(svc.id, events, expected_version=0)
+        await self._read_model_repo.upsert_from_aggregate(svc)
+        await self._event_producer.publish_many("ipam.events", events)
+        return svc.id
+
+
+class UpdateServiceHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ServiceReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: UpdateServiceCommand) -> None:
+        svc = await self._event_store.load_aggregate(Service, command.service_id)
+        if svc is None:
+            raise EntityNotFoundError(f"Service {command.service_id} not found")
+
+        svc.update(
+            name=command.name,
+            protocol=command.protocol,
+            ports=command.ports,
+            ip_addresses=command.ip_addresses,
+            description=command.description,
+            custom_fields=command.custom_fields,
+            tags=command.tags,
+        )
+
+        new_events = svc.collect_uncommitted_events()
+        await self._event_store.append(
+            svc.id, new_events, expected_version=svc.version - len(new_events), aggregate=svc
+        )
+        await self._read_model_repo.upsert_from_aggregate(svc)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class DeleteServiceHandler(CommandHandler[None]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ServiceReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: DeleteServiceCommand) -> None:
+        svc = await self._event_store.load_aggregate(Service, command.service_id)
+        if svc is None:
+            raise EntityNotFoundError(f"Service {command.service_id} not found")
+
+        svc.delete()
+
+        new_events = svc.collect_uncommitted_events()
+        await self._event_store.append(
+            svc.id, new_events, expected_version=svc.version - len(new_events), aggregate=svc
+        )
+        await self._read_model_repo.mark_deleted(svc.id)
+        await self._event_producer.publish_many("ipam.events", new_events)
+
+
+# ---------------------------------------------------------------------------
+# Bulk Operations (new aggregates)
+# ---------------------------------------------------------------------------
+
+
+class BulkCreateRouteTargetsHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RouteTargetReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateRouteTargetsCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            rt = RouteTarget.create(
+                name=item.name,
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = rt.collect_uncommitted_events()
+            await self._event_store.append(rt.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(rt)
+            all_events.extend(events)
+            results.append(rt.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateVLANGroupsHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateVLANGroupsCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            group = VLANGroup.create(
+                name=item.name,
+                slug=item.slug,
+                min_vid=item.min_vid,
+                max_vid=item.max_vid,
+                tenant_id=item.tenant_id,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = group.collect_uncommitted_events()
+            await self._event_store.append(group.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(group)
+            all_events.extend(events)
+            results.append(group.id)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return results
+
+
+class BulkCreateServicesHandler(CommandHandler[list[UUID]]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ServiceReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkCreateServicesCommand) -> list[UUID]:
+        results: list[UUID] = []
+        all_events: list = []
+        for item in command.items:
+            svc = Service.create(
+                name=item.name,
+                protocol=ServiceProtocol(item.protocol),
+                ports=item.ports,
+                ip_addresses=item.ip_addresses,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            events = svc.collect_uncommitted_events()
+            await self._event_store.append(svc.id, events, expected_version=0)
+            await self._read_model_repo.upsert_from_aggregate(svc)
+            all_events.extend(events)
+            results.append(svc.id)
         await self._event_producer.publish_many("ipam.events", all_events)
         return results

@@ -73,6 +73,8 @@ class DeleteIPAddressCommand(Command):
 class CreateVRFCommand(Command):
     name: str
     rd: str | None = None
+    import_targets: list[UUID] = []
+    export_targets: list[UUID] = []
     tenant_id: UUID | None = None
     description: str = ""
     custom_fields: dict = {}
@@ -82,6 +84,8 @@ class CreateVRFCommand(Command):
 class UpdateVRFCommand(Command):
     vrf_id: UUID
     name: str | None = None
+    import_targets: list[UUID] | None = None
+    export_targets: list[UUID] | None = None
     description: str | None = None
     custom_fields: dict | None = None
     tags: list[UUID] | None = None
@@ -263,3 +267,97 @@ class BulkCreateASNsCommand(Command):
 
 class BulkCreateFHRPGroupsCommand(Command):
     items: list[CreateFHRPGroupCommand]
+
+
+# --- RouteTarget ---
+
+
+class CreateRouteTargetCommand(Command):
+    name: str
+    tenant_id: UUID | None = None
+    description: str = ""
+    custom_fields: dict = {}
+    tags: list[UUID] = []
+
+
+class UpdateRouteTargetCommand(Command):
+    route_target_id: UUID
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class DeleteRouteTargetCommand(Command):
+    route_target_id: UUID
+
+
+# --- VLANGroup ---
+
+
+class CreateVLANGroupCommand(Command):
+    name: str
+    slug: str
+    min_vid: int = 1
+    max_vid: int = 4094
+    tenant_id: UUID | None = None
+    description: str = ""
+    custom_fields: dict = {}
+    tags: list[UUID] = []
+
+
+class UpdateVLANGroupCommand(Command):
+    vlan_group_id: UUID
+    name: str | None = None
+    description: str | None = None
+    min_vid: int | None = None
+    max_vid: int | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class DeleteVLANGroupCommand(Command):
+    vlan_group_id: UUID
+
+
+# --- Service ---
+
+
+class CreateServiceCommand(Command):
+    name: str
+    protocol: str = "tcp"
+    ports: list[int] = []
+    ip_addresses: list[UUID] = []
+    description: str = ""
+    custom_fields: dict = {}
+    tags: list[UUID] = []
+
+
+class UpdateServiceCommand(Command):
+    service_id: UUID
+    name: str | None = None
+    protocol: str | None = None
+    ports: list[int] | None = None
+    ip_addresses: list[UUID] | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class DeleteServiceCommand(Command):
+    service_id: UUID
+
+
+# --- Bulk Operations (new aggregates) ---
+
+
+class BulkCreateRouteTargetsCommand(Command):
+    items: list[CreateRouteTargetCommand]
+
+
+class BulkCreateVLANGroupsCommand(Command):
+    items: list[CreateVLANGroupCommand]
+
+
+class BulkCreateServicesCommand(Command):
+    items: list[CreateServiceCommand]
