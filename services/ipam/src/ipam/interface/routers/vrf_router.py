@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateVRFsHandler,
+    BulkDeleteVRFsHandler,
+    BulkUpdateVRFsHandler,
     CreateVRFHandler,
     DeleteVRFHandler,
     UpdateVRFHandler,
 )
 from ipam.application.commands import (
     BulkCreateVRFsCommand,
+    BulkDeleteVRFsCommand,
+    BulkUpdateVRFItem,
+    BulkUpdateVRFsCommand,
     CreateVRFCommand,
     DeleteVRFCommand,
     UpdateVRFCommand,
@@ -19,10 +24,16 @@ from ipam.application.query_handlers import GetVRFHandler, ListVRFsHandler
 from ipam.infrastructure.read_model_repository import PostgresVRFReadModelRepository
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     CreateVRFRequest,
     UpdateVRFRequest,
     VRFListResponse,
     VRFResponse,
+)
+from ipam.interface.schemas import (
+    BulkUpdateVRFItem as BulkUpdateVRFItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -43,6 +54,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateVRFsCommand,
         BulkCreateVRFsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateVRFsCommand,
+        BulkUpdateVRFsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteVRFsCommand,
+        BulkDeleteVRFsHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -87,6 +106,28 @@ async def list_vrfs(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_vrfs(
+    body: list[BulkUpdateVRFItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateVRFsCommand(
+            items=[BulkUpdateVRFItem(vrf_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_vrfs(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteVRFsCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{vrf_id}", response_model=VRFResponse)

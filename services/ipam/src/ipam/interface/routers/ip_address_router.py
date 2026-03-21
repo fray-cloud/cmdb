@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateIPAddressesHandler,
+    BulkDeleteIPAddressesHandler,
+    BulkUpdateIPAddressesHandler,
     ChangeIPAddressStatusHandler,
     CreateIPAddressHandler,
     DeleteIPAddressHandler,
@@ -11,6 +13,9 @@ from ipam.application.command_handlers import (
 )
 from ipam.application.commands import (
     BulkCreateIPAddressesCommand,
+    BulkDeleteIPAddressesCommand,
+    BulkUpdateIPAddressesCommand,
+    BulkUpdateIPAddressItem,
     ChangeIPAddressStatusCommand,
     CreateIPAddressCommand,
     DeleteIPAddressCommand,
@@ -21,11 +26,17 @@ from ipam.application.query_handlers import GetIPAddressHandler, ListIPAddresses
 from ipam.infrastructure.read_model_repository import PostgresIPAddressReadModelRepository
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     ChangeStatusRequest,
     CreateIPAddressRequest,
     IPAddressListResponse,
     IPAddressResponse,
     UpdateIPAddressRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdateIPAddressItem as BulkUpdateIPAddressItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -59,6 +70,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateIPAddressesCommand,
         BulkCreateIPAddressesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateIPAddressesCommand,
+        BulkUpdateIPAddressesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteIPAddressesCommand,
+        BulkDeleteIPAddressesHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -111,6 +130,30 @@ async def list_ip_addresses(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_ip_addresses(
+    body: list[BulkUpdateIPAddressItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateIPAddressesCommand(
+            items=[
+                BulkUpdateIPAddressItem(ip_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body
+            ]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_ip_addresses(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteIPAddressesCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{ip_id}", response_model=IPAddressResponse)

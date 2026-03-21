@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateFHRPGroupsHandler,
+    BulkDeleteFHRPGroupsHandler,
+    BulkUpdateFHRPGroupsHandler,
     CreateFHRPGroupHandler,
     DeleteFHRPGroupHandler,
     UpdateFHRPGroupHandler,
 )
 from ipam.application.commands import (
     BulkCreateFHRPGroupsCommand,
+    BulkDeleteFHRPGroupsCommand,
+    BulkUpdateFHRPGroupItem,
+    BulkUpdateFHRPGroupsCommand,
     CreateFHRPGroupCommand,
     DeleteFHRPGroupCommand,
     UpdateFHRPGroupCommand,
@@ -19,10 +24,16 @@ from ipam.application.query_handlers import GetFHRPGroupHandler, ListFHRPGroupsH
 from ipam.infrastructure.read_model_repository import PostgresFHRPGroupReadModelRepository
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     CreateFHRPGroupRequest,
     FHRPGroupListResponse,
     FHRPGroupResponse,
     UpdateFHRPGroupRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdateFHRPGroupItem as BulkUpdateFHRPGroupItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -52,6 +63,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateFHRPGroupsCommand,
         BulkCreateFHRPGroupsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateFHRPGroupsCommand,
+        BulkUpdateFHRPGroupsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteFHRPGroupsCommand,
+        BulkDeleteFHRPGroupsHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -93,6 +112,31 @@ async def list_fhrp_groups(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_fhrp_groups(
+    body: list[BulkUpdateFHRPGroupItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateFHRPGroupsCommand(
+            items=[
+                BulkUpdateFHRPGroupItem(fhrp_group_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True))
+                for i in body
+            ]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_fhrp_groups(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteFHRPGroupsCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{fhrp_group_id}", response_model=FHRPGroupResponse)

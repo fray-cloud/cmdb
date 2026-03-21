@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateVLANsHandler,
+    BulkDeleteVLANsHandler,
+    BulkUpdateVLANsHandler,
     ChangeVLANStatusHandler,
     CreateVLANHandler,
     DeleteVLANHandler,
@@ -11,6 +13,9 @@ from ipam.application.command_handlers import (
 )
 from ipam.application.commands import (
     BulkCreateVLANsCommand,
+    BulkDeleteVLANsCommand,
+    BulkUpdateVLANItem,
+    BulkUpdateVLANsCommand,
     ChangeVLANStatusCommand,
     CreateVLANCommand,
     DeleteVLANCommand,
@@ -21,11 +26,17 @@ from ipam.application.query_handlers import GetVLANHandler, ListVLANsHandler
 from ipam.infrastructure.read_model_repository import PostgresVLANReadModelRepository
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     ChangeStatusRequest,
     CreateVLANRequest,
     UpdateVLANRequest,
     VLANListResponse,
     VLANResponse,
+)
+from ipam.interface.schemas import (
+    BulkUpdateVLANItem as BulkUpdateVLANItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -59,6 +70,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateVLANsCommand,
         BulkCreateVLANsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateVLANsCommand,
+        BulkUpdateVLANsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteVLANsCommand,
+        BulkDeleteVLANsHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -111,6 +130,28 @@ async def list_vlans(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_vlans(
+    body: list[BulkUpdateVLANItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateVLANsCommand(
+            items=[BulkUpdateVLANItem(vlan_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_vlans(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteVLANsCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{vlan_id}", response_model=VLANResponse)

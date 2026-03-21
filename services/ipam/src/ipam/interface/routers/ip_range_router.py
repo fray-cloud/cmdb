@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateIPRangesHandler,
+    BulkDeleteIPRangesHandler,
+    BulkUpdateIPRangesHandler,
     ChangeIPRangeStatusHandler,
     CreateIPRangeHandler,
     DeleteIPRangeHandler,
@@ -11,6 +13,9 @@ from ipam.application.command_handlers import (
 )
 from ipam.application.commands import (
     BulkCreateIPRangesCommand,
+    BulkDeleteIPRangesCommand,
+    BulkUpdateIPRangeItem,
+    BulkUpdateIPRangesCommand,
     ChangeIPRangeStatusCommand,
     CreateIPRangeCommand,
     DeleteIPRangeCommand,
@@ -24,11 +29,17 @@ from ipam.infrastructure.read_model_repository import (
 )
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     ChangeStatusRequest,
     CreateIPRangeRequest,
     IPRangeListResponse,
     IPRangeResponse,
     UpdateIPRangeRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdateIPRangeItem as BulkUpdateIPRangeItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -62,6 +73,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateIPRangesCommand,
         BulkCreateIPRangesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateIPRangesCommand,
+        BulkUpdateIPRangesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteIPRangesCommand,
+        BulkDeleteIPRangesHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -116,6 +135,30 @@ async def list_ip_ranges(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_ip_ranges(
+    body: list[BulkUpdateIPRangeItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateIPRangesCommand(
+            items=[
+                BulkUpdateIPRangeItem(range_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body
+            ]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_ip_ranges(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteIPRangesCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{range_id}", response_model=IPRangeResponse)

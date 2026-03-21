@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateRIRsHandler,
+    BulkDeleteRIRsHandler,
+    BulkUpdateRIRsHandler,
     CreateRIRHandler,
     DeleteRIRHandler,
     UpdateRIRHandler,
 )
 from ipam.application.commands import (
     BulkCreateRIRsCommand,
+    BulkDeleteRIRsCommand,
+    BulkUpdateRIRItem,
+    BulkUpdateRIRsCommand,
     CreateRIRCommand,
     DeleteRIRCommand,
     UpdateRIRCommand,
@@ -19,10 +24,16 @@ from ipam.application.query_handlers import GetRIRHandler, ListRIRsHandler
 from ipam.infrastructure.read_model_repository import PostgresRIRReadModelRepository
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     CreateRIRRequest,
     RIRListResponse,
     RIRResponse,
     UpdateRIRRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdateRIRItem as BulkUpdateRIRItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -43,6 +54,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateRIRsCommand,
         BulkCreateRIRsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateRIRsCommand,
+        BulkUpdateRIRsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteRIRsCommand,
+        BulkDeleteRIRsHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -84,6 +103,28 @@ async def list_rirs(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_rirs(
+    body: list[BulkUpdateRIRItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateRIRsCommand(
+            items=[BulkUpdateRIRItem(rir_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_rirs(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteRIRsCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{rir_id}", response_model=RIRResponse)

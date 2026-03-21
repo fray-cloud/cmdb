@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateRouteTargetsHandler,
+    BulkDeleteRouteTargetsHandler,
+    BulkUpdateRouteTargetsHandler,
     CreateRouteTargetHandler,
     DeleteRouteTargetHandler,
     UpdateRouteTargetHandler,
 )
 from ipam.application.commands import (
     BulkCreateRouteTargetsCommand,
+    BulkDeleteRouteTargetsCommand,
+    BulkUpdateRouteTargetItem,
+    BulkUpdateRouteTargetsCommand,
     CreateRouteTargetCommand,
     DeleteRouteTargetCommand,
     UpdateRouteTargetCommand,
@@ -19,10 +24,16 @@ from ipam.application.query_handlers import GetRouteTargetHandler, ListRouteTarg
 from ipam.infrastructure.read_model_repository import PostgresRouteTargetReadModelRepository
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     CreateRouteTargetRequest,
     RouteTargetListResponse,
     RouteTargetResponse,
     UpdateRouteTargetRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdateRouteTargetItem as BulkUpdateRouteTargetItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -43,6 +54,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateRouteTargetsCommand,
         BulkCreateRouteTargetsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateRouteTargetsCommand,
+        BulkUpdateRouteTargetsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteRouteTargetsCommand,
+        BulkDeleteRouteTargetsHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -91,6 +110,31 @@ async def list_route_targets(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_route_targets(
+    body: list[BulkUpdateRouteTargetItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateRouteTargetsCommand(
+            items=[
+                BulkUpdateRouteTargetItem(route_target_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True))
+                for i in body
+            ]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_route_targets(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteRouteTargetsCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{route_target_id}", response_model=RouteTargetResponse)

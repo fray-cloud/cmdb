@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateASNsHandler,
+    BulkDeleteASNsHandler,
+    BulkUpdateASNsHandler,
     CreateASNHandler,
     DeleteASNHandler,
     UpdateASNHandler,
 )
 from ipam.application.commands import (
     BulkCreateASNsCommand,
+    BulkDeleteASNsCommand,
+    BulkUpdateASNItem,
+    BulkUpdateASNsCommand,
     CreateASNCommand,
     DeleteASNCommand,
     UpdateASNCommand,
@@ -21,8 +26,14 @@ from ipam.interface.schemas import (
     ASNListResponse,
     ASNResponse,
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     CreateASNRequest,
     UpdateASNRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdateASNItem as BulkUpdateASNItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -43,6 +54,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateASNsCommand,
         BulkCreateASNsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateASNsCommand,
+        BulkUpdateASNsHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteASNsCommand,
+        BulkDeleteASNsHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -93,6 +112,28 @@ async def list_asns(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_asns(
+    body: list[BulkUpdateASNItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateASNsCommand(
+            items=[BulkUpdateASNItem(asn_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_asns(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteASNsCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{asn_id}", response_model=ASNResponse)

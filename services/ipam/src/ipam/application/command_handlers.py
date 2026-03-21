@@ -14,6 +14,28 @@ from ipam.application.commands import (
     BulkCreateVLANGroupsCommand,
     BulkCreateVLANsCommand,
     BulkCreateVRFsCommand,
+    BulkDeleteASNsCommand,
+    BulkDeleteFHRPGroupsCommand,
+    BulkDeleteIPAddressesCommand,
+    BulkDeleteIPRangesCommand,
+    BulkDeletePrefixesCommand,
+    BulkDeleteRIRsCommand,
+    BulkDeleteRouteTargetsCommand,
+    BulkDeleteServicesCommand,
+    BulkDeleteVLANGroupsCommand,
+    BulkDeleteVLANsCommand,
+    BulkDeleteVRFsCommand,
+    BulkUpdateASNsCommand,
+    BulkUpdateFHRPGroupsCommand,
+    BulkUpdateIPAddressesCommand,
+    BulkUpdateIPRangesCommand,
+    BulkUpdatePrefixesCommand,
+    BulkUpdateRIRsCommand,
+    BulkUpdateRouteTargetsCommand,
+    BulkUpdateServicesCommand,
+    BulkUpdateVLANGroupsCommand,
+    BulkUpdateVLANsCommand,
+    BulkUpdateVRFsCommand,
     ChangeIPAddressStatusCommand,
     ChangeIPRangeStatusCommand,
     ChangePrefixStatusCommand,
@@ -1201,6 +1223,506 @@ class BulkCreateFHRPGroupsHandler(CommandHandler[list[UUID]]):
 
 
 # ---------------------------------------------------------------------------
+# Bulk Update / Delete
+# ---------------------------------------------------------------------------
+
+
+class BulkUpdatePrefixesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: PrefixReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdatePrefixesCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            prefix = await self._event_store.load_aggregate(Prefix, item.prefix_id)
+            if prefix is None:
+                raise EntityNotFoundError(f"Prefix {item.prefix_id} not found")
+            prefix.update(
+                description=item.description,
+                role=item.role,
+                tenant_id=item.tenant_id,
+                vlan_id=item.vlan_id,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = prefix.collect_uncommitted_events()
+            await self._event_store.append(
+                prefix.id, new_events, expected_version=prefix.version - len(new_events), aggregate=prefix
+            )
+            await self._read_model_repo.upsert_from_aggregate(prefix)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeletePrefixesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: PrefixReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeletePrefixesCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            prefix = await self._event_store.load_aggregate(Prefix, agg_id)
+            if prefix is None:
+                raise EntityNotFoundError(f"Prefix {agg_id} not found")
+            prefix.delete()
+            new_events = prefix.collect_uncommitted_events()
+            await self._event_store.append(
+                prefix.id, new_events, expected_version=prefix.version - len(new_events), aggregate=prefix
+            )
+            await self._read_model_repo.mark_deleted(prefix.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateIPAddressesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPAddressReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateIPAddressesCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            ip = await self._event_store.load_aggregate(IPAddress, item.ip_id)
+            if ip is None:
+                raise EntityNotFoundError(f"IP address {item.ip_id} not found")
+            ip.update(
+                dns_name=item.dns_name,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = ip.collect_uncommitted_events()
+            await self._event_store.append(
+                ip.id, new_events, expected_version=ip.version - len(new_events), aggregate=ip
+            )
+            await self._read_model_repo.upsert_from_aggregate(ip)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteIPAddressesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPAddressReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteIPAddressesCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            ip = await self._event_store.load_aggregate(IPAddress, agg_id)
+            if ip is None:
+                raise EntityNotFoundError(f"IP address {agg_id} not found")
+            ip.delete()
+            new_events = ip.collect_uncommitted_events()
+            await self._event_store.append(
+                ip.id, new_events, expected_version=ip.version - len(new_events), aggregate=ip
+            )
+            await self._read_model_repo.mark_deleted(ip.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateVRFsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VRFReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateVRFsCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            vrf = await self._event_store.load_aggregate(VRF, item.vrf_id)
+            if vrf is None:
+                raise EntityNotFoundError(f"VRF {item.vrf_id} not found")
+            vrf.update(
+                name=item.name,
+                import_targets=item.import_targets,
+                export_targets=item.export_targets,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = vrf.collect_uncommitted_events()
+            await self._event_store.append(
+                vrf.id, new_events, expected_version=vrf.version - len(new_events), aggregate=vrf
+            )
+            await self._read_model_repo.upsert_from_aggregate(vrf)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteVRFsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VRFReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteVRFsCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            vrf = await self._event_store.load_aggregate(VRF, agg_id)
+            if vrf is None:
+                raise EntityNotFoundError(f"VRF {agg_id} not found")
+            vrf.delete()
+            new_events = vrf.collect_uncommitted_events()
+            await self._event_store.append(
+                vrf.id, new_events, expected_version=vrf.version - len(new_events), aggregate=vrf
+            )
+            await self._read_model_repo.mark_deleted(vrf.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateVLANsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateVLANsCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            vlan = await self._event_store.load_aggregate(VLAN, item.vlan_id)
+            if vlan is None:
+                raise EntityNotFoundError(f"VLAN {item.vlan_id} not found")
+            vlan.update(
+                name=item.name,
+                role=item.role,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = vlan.collect_uncommitted_events()
+            await self._event_store.append(
+                vlan.id, new_events, expected_version=vlan.version - len(new_events), aggregate=vlan
+            )
+            await self._read_model_repo.upsert_from_aggregate(vlan)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteVLANsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteVLANsCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            vlan = await self._event_store.load_aggregate(VLAN, agg_id)
+            if vlan is None:
+                raise EntityNotFoundError(f"VLAN {agg_id} not found")
+            vlan.delete()
+            new_events = vlan.collect_uncommitted_events()
+            await self._event_store.append(
+                vlan.id, new_events, expected_version=vlan.version - len(new_events), aggregate=vlan
+            )
+            await self._read_model_repo.mark_deleted(vlan.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateIPRangesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPRangeReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateIPRangesCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            ip_range = await self._event_store.load_aggregate(IPRange, item.range_id)
+            if ip_range is None:
+                raise EntityNotFoundError(f"IP range {item.range_id} not found")
+            ip_range.update(
+                description=item.description,
+                tenant_id=item.tenant_id,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = ip_range.collect_uncommitted_events()
+            await self._event_store.append(
+                ip_range.id, new_events, expected_version=ip_range.version - len(new_events), aggregate=ip_range
+            )
+            await self._read_model_repo.upsert_from_aggregate(ip_range)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteIPRangesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: IPRangeReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteIPRangesCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            ip_range = await self._event_store.load_aggregate(IPRange, agg_id)
+            if ip_range is None:
+                raise EntityNotFoundError(f"IP range {agg_id} not found")
+            ip_range.delete()
+            new_events = ip_range.collect_uncommitted_events()
+            await self._event_store.append(
+                ip_range.id, new_events, expected_version=ip_range.version - len(new_events), aggregate=ip_range
+            )
+            await self._read_model_repo.mark_deleted(ip_range.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateRIRsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RIRReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateRIRsCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            rir = await self._event_store.load_aggregate(RIR, item.rir_id)
+            if rir is None:
+                raise EntityNotFoundError(f"RIR {item.rir_id} not found")
+            rir.update(
+                description=item.description,
+                is_private=item.is_private,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = rir.collect_uncommitted_events()
+            await self._event_store.append(
+                rir.id, new_events, expected_version=rir.version - len(new_events), aggregate=rir
+            )
+            await self._read_model_repo.upsert_from_aggregate(rir)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteRIRsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RIRReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteRIRsCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            rir = await self._event_store.load_aggregate(RIR, agg_id)
+            if rir is None:
+                raise EntityNotFoundError(f"RIR {agg_id} not found")
+            rir.delete()
+            new_events = rir.collect_uncommitted_events()
+            await self._event_store.append(
+                rir.id, new_events, expected_version=rir.version - len(new_events), aggregate=rir
+            )
+            await self._read_model_repo.mark_deleted(rir.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateASNsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ASNReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateASNsCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            asn = await self._event_store.load_aggregate(ASN, item.asn_id)
+            if asn is None:
+                raise EntityNotFoundError(f"ASN {item.asn_id} not found")
+            asn.update(
+                description=item.description,
+                tenant_id=item.tenant_id,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = asn.collect_uncommitted_events()
+            await self._event_store.append(
+                asn.id, new_events, expected_version=asn.version - len(new_events), aggregate=asn
+            )
+            await self._read_model_repo.upsert_from_aggregate(asn)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteASNsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ASNReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteASNsCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            asn = await self._event_store.load_aggregate(ASN, agg_id)
+            if asn is None:
+                raise EntityNotFoundError(f"ASN {agg_id} not found")
+            asn.delete()
+            new_events = asn.collect_uncommitted_events()
+            await self._event_store.append(
+                asn.id, new_events, expected_version=asn.version - len(new_events), aggregate=asn
+            )
+            await self._read_model_repo.mark_deleted(asn.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateFHRPGroupsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: FHRPGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateFHRPGroupsCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            group = await self._event_store.load_aggregate(FHRPGroup, item.fhrp_group_id)
+            if group is None:
+                raise EntityNotFoundError(f"FHRP group {item.fhrp_group_id} not found")
+            group.update(
+                name=item.name,
+                auth_type=item.auth_type,
+                auth_key=item.auth_key,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = group.collect_uncommitted_events()
+            await self._event_store.append(
+                group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+            )
+            await self._read_model_repo.upsert_from_aggregate(group)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteFHRPGroupsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: FHRPGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteFHRPGroupsCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            group = await self._event_store.load_aggregate(FHRPGroup, agg_id)
+            if group is None:
+                raise EntityNotFoundError(f"FHRP group {agg_id} not found")
+            group.delete()
+            new_events = group.collect_uncommitted_events()
+            await self._event_store.append(
+                group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+            )
+            await self._read_model_repo.mark_deleted(group.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+# ---------------------------------------------------------------------------
 # RouteTarget
 # ---------------------------------------------------------------------------
 
@@ -1468,6 +1990,194 @@ class DeleteServiceHandler(CommandHandler[None]):
         )
         await self._read_model_repo.mark_deleted(svc.id)
         await self._event_producer.publish_many("ipam.events", new_events)
+
+
+class BulkUpdateRouteTargetsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RouteTargetReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateRouteTargetsCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            rt = await self._event_store.load_aggregate(RouteTarget, item.route_target_id)
+            if rt is None:
+                raise EntityNotFoundError(f"RouteTarget {item.route_target_id} not found")
+            rt.update(
+                description=item.description,
+                tenant_id=item.tenant_id,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = rt.collect_uncommitted_events()
+            await self._event_store.append(
+                rt.id, new_events, expected_version=rt.version - len(new_events), aggregate=rt
+            )
+            await self._read_model_repo.upsert_from_aggregate(rt)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteRouteTargetsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: RouteTargetReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteRouteTargetsCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            rt = await self._event_store.load_aggregate(RouteTarget, agg_id)
+            if rt is None:
+                raise EntityNotFoundError(f"RouteTarget {agg_id} not found")
+            rt.delete()
+            new_events = rt.collect_uncommitted_events()
+            await self._event_store.append(
+                rt.id, new_events, expected_version=rt.version - len(new_events), aggregate=rt
+            )
+            await self._read_model_repo.mark_deleted(rt.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateVLANGroupsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateVLANGroupsCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            group = await self._event_store.load_aggregate(VLANGroup, item.vlan_group_id)
+            if group is None:
+                raise EntityNotFoundError(f"VLANGroup {item.vlan_group_id} not found")
+            group.update(
+                name=item.name,
+                description=item.description,
+                min_vid=item.min_vid,
+                max_vid=item.max_vid,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = group.collect_uncommitted_events()
+            await self._event_store.append(
+                group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+            )
+            await self._read_model_repo.upsert_from_aggregate(group)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteVLANGroupsHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: VLANGroupReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteVLANGroupsCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            group = await self._event_store.load_aggregate(VLANGroup, agg_id)
+            if group is None:
+                raise EntityNotFoundError(f"VLANGroup {agg_id} not found")
+            group.delete()
+            new_events = group.collect_uncommitted_events()
+            await self._event_store.append(
+                group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+            )
+            await self._read_model_repo.mark_deleted(group.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
+
+
+class BulkUpdateServicesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ServiceReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkUpdateServicesCommand) -> int:
+        all_events: list = []
+        for item in command.items:
+            svc = await self._event_store.load_aggregate(Service, item.service_id)
+            if svc is None:
+                raise EntityNotFoundError(f"Service {item.service_id} not found")
+            svc.update(
+                name=item.name,
+                protocol=item.protocol,
+                ports=item.ports,
+                ip_addresses=item.ip_addresses,
+                description=item.description,
+                custom_fields=item.custom_fields,
+                tags=item.tags,
+            )
+            new_events = svc.collect_uncommitted_events()
+            await self._event_store.append(
+                svc.id, new_events, expected_version=svc.version - len(new_events), aggregate=svc
+            )
+            await self._read_model_repo.upsert_from_aggregate(svc)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.items)
+
+
+class BulkDeleteServicesHandler(CommandHandler[int]):
+    def __init__(
+        self,
+        event_store: PostgresEventStore,
+        read_model_repo: ServiceReadModelRepository,
+        event_producer: KafkaEventProducer,
+    ) -> None:
+        self._event_store = event_store
+        self._read_model_repo = read_model_repo
+        self._event_producer = event_producer
+
+    async def handle(self, command: BulkDeleteServicesCommand) -> int:
+        all_events: list = []
+        for agg_id in command.ids:
+            svc = await self._event_store.load_aggregate(Service, agg_id)
+            if svc is None:
+                raise EntityNotFoundError(f"Service {agg_id} not found")
+            svc.delete()
+            new_events = svc.collect_uncommitted_events()
+            await self._event_store.append(
+                svc.id, new_events, expected_version=svc.version - len(new_events), aggregate=svc
+            )
+            await self._read_model_repo.mark_deleted(svc.id)
+            all_events.extend(new_events)
+        await self._event_producer.publish_many("ipam.events", all_events)
+        return len(command.ids)
 
 
 # ---------------------------------------------------------------------------

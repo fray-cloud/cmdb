@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreatePrefixesHandler,
+    BulkDeletePrefixesHandler,
+    BulkUpdatePrefixesHandler,
     ChangePrefixStatusHandler,
     CreatePrefixHandler,
     DeletePrefixHandler,
@@ -11,6 +13,9 @@ from ipam.application.command_handlers import (
 )
 from ipam.application.commands import (
     BulkCreatePrefixesCommand,
+    BulkDeletePrefixesCommand,
+    BulkUpdatePrefixesCommand,
+    BulkUpdatePrefixItem,
     ChangePrefixStatusCommand,
     CreatePrefixCommand,
     DeletePrefixCommand,
@@ -38,11 +43,17 @@ from ipam.infrastructure.read_model_repository import (
 )
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     ChangeStatusRequest,
     CreatePrefixRequest,
     PrefixListResponse,
     PrefixResponse,
     UpdatePrefixRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdatePrefixItem as BulkUpdatePrefixItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -67,6 +78,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreatePrefixesCommand,
         BulkCreatePrefixesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdatePrefixesCommand,
+        BulkUpdatePrefixesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeletePrefixesCommand,
+        BulkDeletePrefixesHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -125,6 +144,30 @@ async def list_prefixes(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_prefixes(
+    body: list[BulkUpdatePrefixItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdatePrefixesCommand(
+            items=[
+                BulkUpdatePrefixItem(prefix_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body
+            ]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_prefixes(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeletePrefixesCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{prefix_id}", response_model=PrefixResponse)

@@ -15,6 +15,18 @@ class BulkCreateResponse(BaseModel):
     count: int
 
 
+class BulkDeleteRequest(BaseModel):
+    ids: list[UUID]
+
+
+class BulkUpdateResponse(BaseModel):
+    updated: int
+
+
+class BulkDeleteResponse(BaseModel):
+    deleted: int
+
+
 # --- Prefix ---
 
 
@@ -31,6 +43,16 @@ class CreatePrefixRequest(BaseModel):
 
 
 class UpdatePrefixRequest(BaseModel):
+    description: str | None = None
+    role: str | None = None
+    tenant_id: UUID | None = None
+    vlan_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdatePrefixItem(BaseModel):
+    id: UUID
     description: str | None = None
     role: str | None = None
     tenant_id: UUID | None = None
@@ -82,6 +104,14 @@ class UpdateIPAddressRequest(BaseModel):
     tags: list[UUID] | None = None
 
 
+class BulkUpdateIPAddressItem(BaseModel):
+    id: UUID
+    dns_name: str | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
 class IPAddressResponse(BaseModel):
     id: UUID
     address: str
@@ -126,6 +156,16 @@ class UpdateVRFRequest(BaseModel):
     tags: list[UUID] | None = None
 
 
+class BulkUpdateVRFItem(BaseModel):
+    id: UUID
+    name: str | None = None
+    import_targets: list[UUID] | None = None
+    export_targets: list[UUID] | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
 class VRFResponse(BaseModel):
     id: UUID
     name: str
@@ -163,6 +203,15 @@ class CreateVLANRequest(BaseModel):
 
 
 class UpdateVLANRequest(BaseModel):
+    name: str | None = None
+    role: str | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateVLANItem(BaseModel):
+    id: UUID
     name: str | None = None
     role: str | None = None
     description: str | None = None
@@ -213,6 +262,14 @@ class UpdateIPRangeRequest(BaseModel):
     tags: list[UUID] | None = None
 
 
+class BulkUpdateIPRangeItem(BaseModel):
+    id: UUID
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
 class IPRangeResponse(BaseModel):
     id: UUID
     start_address: str
@@ -252,6 +309,14 @@ class UpdateRIRRequest(BaseModel):
     tags: list[UUID] | None = None
 
 
+class BulkUpdateRIRItem(BaseModel):
+    id: UUID
+    description: str | None = None
+    is_private: bool | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
 class RIRResponse(BaseModel):
     id: UUID
     name: str
@@ -283,6 +348,14 @@ class CreateASNRequest(BaseModel):
 
 
 class UpdateASNRequest(BaseModel):
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateASNItem(BaseModel):
+    id: UUID
     description: str | None = None
     tenant_id: UUID | None = None
     custom_fields: dict | None = None
@@ -331,6 +404,16 @@ class UpdateFHRPGroupRequest(BaseModel):
     tags: list[UUID] | None = None
 
 
+class BulkUpdateFHRPGroupItem(BaseModel):
+    id: UUID
+    name: str | None = None
+    auth_type: str | None = None
+    auth_key: str | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
 class FHRPGroupResponse(BaseModel):
     id: UUID
     protocol: str
@@ -363,6 +446,14 @@ class CreateRouteTargetRequest(BaseModel):
 
 
 class UpdateRouteTargetRequest(BaseModel):
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateRouteTargetItem(BaseModel):
+    id: UUID
     description: str | None = None
     tenant_id: UUID | None = None
     custom_fields: dict | None = None
@@ -410,6 +501,16 @@ class UpdateVLANGroupRequest(BaseModel):
     tags: list[UUID] | None = None
 
 
+class BulkUpdateVLANGroupItem(BaseModel):
+    id: UUID
+    name: str | None = None
+    description: str | None = None
+    min_vid: int | None = None
+    max_vid: int | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
 class VLANGroupResponse(BaseModel):
     id: UUID
     name: str
@@ -445,6 +546,17 @@ class CreateServiceRequest(BaseModel):
 
 
 class UpdateServiceRequest(BaseModel):
+    name: str | None = None
+    protocol: str | None = None
+    ports: list[int] | None = None
+    ip_addresses: list[UUID] | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateServiceItem(BaseModel):
+    id: UUID
     name: str | None = None
     protocol: str | None = None
     ports: list[int] | None = None

@@ -4,12 +4,17 @@ from fastapi import APIRouter, Depends, Request, status
 
 from ipam.application.command_handlers import (
     BulkCreateServicesHandler,
+    BulkDeleteServicesHandler,
+    BulkUpdateServicesHandler,
     CreateServiceHandler,
     DeleteServiceHandler,
     UpdateServiceHandler,
 )
 from ipam.application.commands import (
     BulkCreateServicesCommand,
+    BulkDeleteServicesCommand,
+    BulkUpdateServiceItem,
+    BulkUpdateServicesCommand,
     CreateServiceCommand,
     DeleteServiceCommand,
     UpdateServiceCommand,
@@ -19,10 +24,16 @@ from ipam.application.query_handlers import GetServiceHandler, ListServicesHandl
 from ipam.infrastructure.read_model_repository import PostgresServiceReadModelRepository
 from ipam.interface.schemas import (
     BulkCreateResponse,
+    BulkDeleteRequest,
+    BulkDeleteResponse,
+    BulkUpdateResponse,
     CreateServiceRequest,
     ServiceListResponse,
     ServiceResponse,
     UpdateServiceRequest,
+)
+from ipam.interface.schemas import (
+    BulkUpdateServiceItem as BulkUpdateServiceItemSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -43,6 +54,14 @@ def _get_command_bus(request: Request) -> CommandBus:
     bus.register(
         BulkCreateServicesCommand,
         BulkCreateServicesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkUpdateServicesCommand,
+        BulkUpdateServicesHandler(event_store, read_model_repo, event_producer),
+    )
+    bus.register(
+        BulkDeleteServicesCommand,
+        BulkDeleteServicesHandler(event_store, read_model_repo, event_producer),
     )
     return bus
 
@@ -89,6 +108,30 @@ async def list_services(
         offset=params.offset,
         limit=params.limit,
     )
+
+
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_services(
+    body: list[BulkUpdateServiceItemSchema],
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkUpdateResponse:
+    updated = await command_bus.dispatch(
+        BulkUpdateServicesCommand(
+            items=[
+                BulkUpdateServiceItem(service_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body
+            ]
+        )
+    )
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_services(
+    body: BulkDeleteRequest,
+    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+) -> BulkDeleteResponse:
+    deleted = await command_bus.dispatch(BulkDeleteServicesCommand(ids=body.ids))
+    return BulkDeleteResponse(deleted=deleted)
 
 
 @router.get("/{service_id}", response_model=ServiceResponse)

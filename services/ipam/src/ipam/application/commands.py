@@ -241,32 +241,167 @@ class BulkCreatePrefixesCommand(Command):
     items: list[CreatePrefixCommand]
 
 
+class BulkUpdatePrefixItem(Command):
+    prefix_id: UUID
+    description: str | None = None
+    role: str | None = None
+    tenant_id: UUID | None = None
+    vlan_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdatePrefixesCommand(Command):
+    items: list[BulkUpdatePrefixItem]
+
+
+class BulkDeletePrefixesCommand(Command):
+    ids: list[UUID]
+
+
 class BulkCreateIPAddressesCommand(Command):
     items: list[CreateIPAddressCommand]
+
+
+class BulkUpdateIPAddressItem(Command):
+    ip_id: UUID
+    dns_name: str | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateIPAddressesCommand(Command):
+    items: list[BulkUpdateIPAddressItem]
+
+
+class BulkDeleteIPAddressesCommand(Command):
+    ids: list[UUID]
 
 
 class BulkCreateVRFsCommand(Command):
     items: list[CreateVRFCommand]
 
 
+class BulkUpdateVRFItem(Command):
+    vrf_id: UUID
+    name: str | None = None
+    import_targets: list[UUID] | None = None
+    export_targets: list[UUID] | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateVRFsCommand(Command):
+    items: list[BulkUpdateVRFItem]
+
+
+class BulkDeleteVRFsCommand(Command):
+    ids: list[UUID]
+
+
 class BulkCreateVLANsCommand(Command):
     items: list[CreateVLANCommand]
+
+
+class BulkUpdateVLANItem(Command):
+    vlan_id: UUID
+    name: str | None = None
+    role: str | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateVLANsCommand(Command):
+    items: list[BulkUpdateVLANItem]
+
+
+class BulkDeleteVLANsCommand(Command):
+    ids: list[UUID]
 
 
 class BulkCreateIPRangesCommand(Command):
     items: list[CreateIPRangeCommand]
 
 
+class BulkUpdateIPRangeItem(Command):
+    range_id: UUID
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateIPRangesCommand(Command):
+    items: list[BulkUpdateIPRangeItem]
+
+
+class BulkDeleteIPRangesCommand(Command):
+    ids: list[UUID]
+
+
 class BulkCreateRIRsCommand(Command):
     items: list[CreateRIRCommand]
+
+
+class BulkUpdateRIRItem(Command):
+    rir_id: UUID
+    description: str | None = None
+    is_private: bool | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateRIRsCommand(Command):
+    items: list[BulkUpdateRIRItem]
+
+
+class BulkDeleteRIRsCommand(Command):
+    ids: list[UUID]
 
 
 class BulkCreateASNsCommand(Command):
     items: list[CreateASNCommand]
 
 
+class BulkUpdateASNItem(Command):
+    asn_id: UUID
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateASNsCommand(Command):
+    items: list[BulkUpdateASNItem]
+
+
+class BulkDeleteASNsCommand(Command):
+    ids: list[UUID]
+
+
 class BulkCreateFHRPGroupsCommand(Command):
     items: list[CreateFHRPGroupCommand]
+
+
+class BulkUpdateFHRPGroupItem(Command):
+    fhrp_group_id: UUID
+    name: str | None = None
+    auth_type: str | None = None
+    auth_key: str | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateFHRPGroupsCommand(Command):
+    items: list[BulkUpdateFHRPGroupItem]
+
+
+class BulkDeleteFHRPGroupsCommand(Command):
+    ids: list[UUID]
 
 
 # --- RouteTarget ---
@@ -355,9 +490,62 @@ class BulkCreateRouteTargetsCommand(Command):
     items: list[CreateRouteTargetCommand]
 
 
+class BulkUpdateRouteTargetItem(Command):
+    route_target_id: UUID
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateRouteTargetsCommand(Command):
+    items: list[BulkUpdateRouteTargetItem]
+
+
+class BulkDeleteRouteTargetsCommand(Command):
+    ids: list[UUID]
+
+
 class BulkCreateVLANGroupsCommand(Command):
     items: list[CreateVLANGroupCommand]
 
 
+class BulkUpdateVLANGroupItem(Command):
+    vlan_group_id: UUID
+    name: str | None = None
+    description: str | None = None
+    min_vid: int | None = None
+    max_vid: int | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateVLANGroupsCommand(Command):
+    items: list[BulkUpdateVLANGroupItem]
+
+
+class BulkDeleteVLANGroupsCommand(Command):
+    ids: list[UUID]
+
+
 class BulkCreateServicesCommand(Command):
     items: list[CreateServiceCommand]
+
+
+class BulkUpdateServiceItem(Command):
+    service_id: UUID
+    name: str | None = None
+    protocol: str | None = None
+    ports: list[int] | None = None
+    ip_addresses: list[UUID] | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class BulkUpdateServicesCommand(Command):
+    items: list[BulkUpdateServiceItem]
+
+
+class BulkDeleteServicesCommand(Command):
+    ids: list[UUID]
