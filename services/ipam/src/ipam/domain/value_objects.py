@@ -116,6 +116,12 @@ class RouteDistinguisher(ValueObject):
         return v
 
 
+class ServiceProtocol(StrEnum):
+    TCP = "tcp"
+    UDP = "udp"
+    SCTP = "sctp"
+
+
 class ASNumber(ValueObject):
     asn: int
 

@@ -220,3 +220,79 @@ class FHRPGroupUpdated(DomainEvent):
 
 class FHRPGroupDeleted(DomainEvent):
     pass
+
+
+# RouteTarget Events
+
+
+class RouteTargetCreated(DomainEvent):
+    name: str
+    tenant_id: UUID | None = None
+    description: str = ""
+    custom_fields: dict = {}
+    tags: list[UUID] = []
+
+
+class RouteTargetUpdated(DomainEvent):
+    description: str | None = None
+    tenant_id: UUID | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class RouteTargetDeleted(DomainEvent):
+    pass
+
+
+# VLANGroup Events
+
+
+class VLANGroupCreated(DomainEvent):
+    name: str
+    slug: str
+    min_vid: int = 1
+    max_vid: int = 4094
+    tenant_id: UUID | None = None
+    description: str = ""
+    custom_fields: dict = {}
+    tags: list[UUID] = []
+
+
+class VLANGroupUpdated(DomainEvent):
+    name: str | None = None
+    description: str | None = None
+    min_vid: int | None = None
+    max_vid: int | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class VLANGroupDeleted(DomainEvent):
+    pass
+
+
+# Service Events
+
+
+class ServiceCreated(DomainEvent):
+    name: str
+    protocol: str = "tcp"
+    ports: list[int] = []
+    ip_addresses: list[UUID] = []
+    description: str = ""
+    custom_fields: dict = {}
+    tags: list[UUID] = []
+
+
+class ServiceUpdated(DomainEvent):
+    name: str | None = None
+    protocol: str | None = None
+    ports: list[int] | None = None
+    ip_addresses: list[UUID] | None = None
+    description: str | None = None
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
+
+
+class ServiceDeleted(DomainEvent):
+    pass
