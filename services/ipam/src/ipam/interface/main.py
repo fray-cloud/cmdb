@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from strawberry.fastapi import GraphQLRouter
 
 from ipam.domain.events import (
     ASNCreated,
@@ -49,6 +50,8 @@ from ipam.infrastructure.cache import RedisCache
 from ipam.infrastructure.config import Settings
 from ipam.infrastructure.database import Database
 from ipam.infrastructure.event_projector import IPAMEventProjector
+from ipam.interface.graphql.context import get_graphql_context
+from ipam.interface.graphql.schema import schema
 from ipam.interface.routers.asn_router import router as asn_router
 from ipam.interface.routers.fhrp_group_router import router as fhrp_group_router
 from ipam.interface.routers.ip_address_router import router as ip_address_router
@@ -183,6 +186,8 @@ def create_app() -> FastAPI:
     app.include_router(route_target_router, prefix="/api/v1")
     app.include_router(vlan_group_router, prefix="/api/v1")
     app.include_router(service_router, prefix="/api/v1")
+    graphql_app = GraphQLRouter(schema, context_getter=get_graphql_context)
+    app.include_router(graphql_app, prefix="/graphql")
     return app
 
 
