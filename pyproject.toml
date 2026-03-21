@@ -8,7 +8,7 @@ requires-python = ">=3.13"
 members = ["services/*", "shared"]
 
 [dependency-groups]
-dev = ["ruff", "pytest", "pytest-asyncio", "pre-commit"]
+dev = ["ruff", "pytest", "pytest-asyncio", "pre-commit", "pytest-httpx", "fakeredis"]
 
 [tool.ruff.lint]
 ignore = ["N802"]
