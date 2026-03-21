@@ -7,6 +7,9 @@ dependencies = [
     "cmdb-shared",
     "fastapi>=0.115",
     "uvicorn",
+    "httpx",
+    "pydantic-settings",
+    "asyncpg",
 ]
 
 [build-system]
