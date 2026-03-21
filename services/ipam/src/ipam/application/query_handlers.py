@@ -19,8 +19,14 @@ from ipam.application.read_model import (
     VRFReadModelRepository,
 )
 from ipam.domain.ip_address import IPAddress
+from ipam.domain.ip_range import IPRange
 from ipam.domain.prefix import Prefix
-from ipam.domain.services import AvailablePrefixService, IPAvailabilityService, PrefixUtilizationService
+from ipam.domain.services import (
+    AvailablePrefixService,
+    IPAvailabilityService,
+    IPRangeUtilizationService,
+    PrefixUtilizationService,
+)
 from shared.api.filtering import FilterOperator, FilterParam
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
@@ -263,6 +269,26 @@ class ListIPRangesHandler(QueryHandler[tuple[list[IPRangeDTO], int]]):
         return [IPRangeDTO(**item) for item in items], total
 
 
+class GetIPRangeUtilizationHandler(QueryHandler[float]):
+    def __init__(
+        self,
+        range_repo: IPRangeReadModelRepository,
+        ip_repo: IPAddressReadModelRepository,
+    ) -> None:
+        self._range_repo = range_repo
+        self._ip_repo = ip_repo
+        self._service = IPRangeUtilizationService()
+
+    async def handle(self, query: Query) -> float:
+        data = await self._range_repo.find_by_id(query.range_id)
+        if data is None:
+            raise EntityNotFoundError(f"IPRange {query.range_id} not found")
+        ip_range = _reconstruct_ip_range(data)
+        ips_data = await self._ip_repo.find_ips_in_range(data["start_address"], data["end_address"], data.get("vrf_id"))
+        used_addresses = [_reconstruct_ip(ip) for ip in ips_data]
+        return self._service.calculate(ip_range, used_addresses)
+
+
 # ---------------------------------------------------------------------------
 # RIR
 # ---------------------------------------------------------------------------
@@ -365,6 +391,24 @@ def _reconstruct_prefix(data: dict) -> Prefix:
     prefix.custom_fields = data.get("custom_fields", {})
     prefix.tags = [UUID(str(t)) for t in data.get("tags", [])]
     return prefix
+
+
+def _reconstruct_ip_range(data: dict) -> IPRange:
+    """Reconstruct an IPRange domain object from read model data for domain service use."""
+    from uuid import UUID
+
+    from ipam.domain.value_objects import IPAddressValue, IPRangeStatus
+
+    ip_range = IPRange(aggregate_id=UUID(str(data["id"])))
+    ip_range.start_address = IPAddressValue(address=data["start_address"]) if data.get("start_address") else None
+    ip_range.end_address = IPAddressValue(address=data["end_address"]) if data.get("end_address") else None
+    ip_range.vrf_id = UUID(str(data["vrf_id"])) if data.get("vrf_id") else None
+    ip_range.status = IPRangeStatus(data["status"])
+    ip_range.tenant_id = UUID(str(data["tenant_id"])) if data.get("tenant_id") else None
+    ip_range.description = data.get("description", "")
+    ip_range.custom_fields = data.get("custom_fields", {})
+    ip_range.tags = [UUID(str(t)) for t in data.get("tags", [])]
+    return ip_range
 
 
 def _reconstruct_ip(data: dict) -> IPAddress:

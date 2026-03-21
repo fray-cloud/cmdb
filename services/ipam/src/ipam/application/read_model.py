@@ -40,6 +40,9 @@ class IPAddressReadModelRepository(ReadModelRepository):
     @abstractmethod
     async def find_by_prefix(self, network: str, vrf_id: UUID | None) -> list[dict]: ...
 
+    @abstractmethod
+    async def find_ips_in_range(self, start_address: str, end_address: str, vrf_id: UUID | None) -> list[dict]: ...
+
 
 class VRFReadModelRepository(ReadModelRepository):
     @abstractmethod

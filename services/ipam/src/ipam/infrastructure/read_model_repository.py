@@ -220,6 +220,26 @@ class PostgresIPAddressReadModelRepository(IPAddressReadModelRepository):
                 matched.append(self._to_dict(row))
         return matched
 
+    async def find_ips_in_range(self, start_address: str, end_address: str, vrf_id: UUID | None) -> list[dict]:
+        stmt = select(IPAddressReadModel).where(IPAddressReadModel.is_deleted == sa.false())
+        if vrf_id is not None:
+            stmt = stmt.where(IPAddressReadModel.vrf_id == vrf_id)
+        else:
+            stmt = stmt.where(IPAddressReadModel.vrf_id.is_(None))
+        result = await self._session.execute(stmt)
+        start_ip = ipaddress.ip_address(start_address)
+        end_ip = ipaddress.ip_address(end_address)
+        matched = []
+        for row in result.scalars().all():
+            try:
+                addr_str = row.address.split("/")[0]
+                addr = ipaddress.ip_address(addr_str)
+            except ValueError:
+                continue
+            if start_ip <= addr <= end_ip:
+                matched.append(self._to_dict(row))
+        return matched
+
     @staticmethod
     def _to_dict(model: IPAddressReadModel) -> dict:
         return {

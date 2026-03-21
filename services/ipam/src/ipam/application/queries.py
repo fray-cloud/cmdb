@@ -93,6 +93,10 @@ class ListIPRangesQuery(Query):
     tenant_id: UUID | None = None
 
 
+class GetIPRangeUtilizationQuery(Query):
+    range_id: UUID
+
+
 # --- RIR ---
 
 

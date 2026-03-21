@@ -2,10 +2,12 @@
 
 import pytest
 from ipam.domain.ip_address import IPAddress
+from ipam.domain.ip_range import IPRange
 from ipam.domain.prefix import Prefix
 from ipam.domain.services import (
     AvailablePrefixService,
     IPAvailabilityService,
+    IPRangeUtilizationService,
     PrefixUtilizationService,
 )
 from ipam.domain.value_objects import PrefixStatus
@@ -307,3 +309,53 @@ class TestIPAvailabilityService:
         # Should not crash; ip with no address is simply not in used_set
         result = self.service.find_available(prefix, [ip_no_address], count=2)
         assert len(result) == 2
+
+
+# ---------------------------------------------------------------------------
+# IPRangeUtilizationService
+# ---------------------------------------------------------------------------
+
+
+def make_ip_range(start: str, end: str) -> IPRange:
+    r = IPRange.create(start_address=start, end_address=end)
+    r.collect_uncommitted_events()
+    return r
+
+
+class TestIPRangeUtilizationService:
+    def setup_method(self):
+        self.service = IPRangeUtilizationService()
+
+    def test_empty_range_no_addresses(self):
+        ip_range = make_ip_range("10.0.0.1", "10.0.0.10")
+        result = self.service.calculate(ip_range, [])
+        assert result == 0.0
+
+    def test_one_address_in_range_of_ten(self):
+        ip_range = make_ip_range("10.0.0.1", "10.0.0.10")
+        used = [make_ip("10.0.0.5")]
+        result = self.service.calculate(ip_range, used)
+        assert result == pytest.approx(1 / 10)
+
+    def test_all_addresses_used(self):
+        ip_range = make_ip_range("10.0.0.1", "10.0.0.3")
+        used = [make_ip("10.0.0.1"), make_ip("10.0.0.2"), make_ip("10.0.0.3")]
+        result = self.service.calculate(ip_range, used)
+        assert result == 1.0
+
+    def test_address_outside_range_not_counted(self):
+        ip_range = make_ip_range("10.0.0.1", "10.0.0.5")
+        used = [make_ip("10.0.0.100")]
+        result = self.service.calculate(ip_range, used)
+        assert result == 0.0
+
+    def test_range_with_no_addresses_returns_zero(self):
+        ip_range = IPRange()
+        result = self.service.calculate(ip_range, [])
+        assert result == 0.0
+
+    def test_ipv6_range_utilization(self):
+        ip_range = make_ip_range("2001:db8::1", "2001:db8::4")
+        used = [make_ip("2001:db8::2")]
+        result = self.service.calculate(ip_range, used)
+        assert result == pytest.approx(1 / 4)
