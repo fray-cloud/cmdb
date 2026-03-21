@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
@@ -8,10 +9,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.domain.exceptions import ConflictError
+from shared.event.aggregate import AggregateRoot
 from shared.event.domain_event import DomainEvent
 from shared.event.models import StoredEvent, StoredSnapshot
 from shared.event.snapshot import SnapshotStrategy
 from shared.event.store import EventStore
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresEventStore(EventStore):
@@ -36,12 +40,33 @@ class PostgresEventStore(EventStore):
             async with self._session_factory() as new_session:
                 yield new_session, True
 
+    async def load_aggregate[T: AggregateRoot](
+        self,
+        aggregate_cls: type[T],
+        aggregate_id: UUID,
+    ) -> T | None:
+        snapshot_data = await self.load_snapshot(aggregate_id)
+        if snapshot_data is not None:
+            state, snapshot_version = snapshot_data
+            aggregate = aggregate_cls.from_snapshot(aggregate_id, state, snapshot_version)
+            events = await self.load_stream(aggregate_id, after_version=snapshot_version)
+        else:
+            events = await self.load_stream(aggregate_id)
+            if not events:
+                return None
+            aggregate = aggregate_cls(aggregate_id=aggregate_id)
+            snapshot_version = 0
+
+        aggregate.load_from_history(events)
+        return aggregate
+
     async def append(
         self,
         aggregate_id: UUID,
         events: list[DomainEvent],
         expected_version: int,
         *,
+        aggregate: AggregateRoot | None = None,
         session: AsyncSession | None = None,
     ) -> None:
         async with self._get_session(session) as (sess, owns_session):
@@ -75,6 +100,17 @@ class PostgresEventStore(EventStore):
 
             if owns_session:
                 await sess.commit()
+
+        if aggregate is not None:
+            await self._try_snapshot(aggregate, expected_version)
+
+    async def _try_snapshot(self, aggregate: AggregateRoot, last_snapshot_version: int) -> None:
+        if self._snapshot_strategy.should_snapshot(aggregate.version, last_snapshot_version):
+            try:
+                await self.save_snapshot(aggregate.id, aggregate.to_snapshot(), aggregate.version)
+                logger.debug("Saved snapshot for aggregate %s at version %d", aggregate.id, aggregate.version)
+            except Exception:
+                logger.warning("Failed to save snapshot for aggregate %s", aggregate.id, exc_info=True)
 
     async def load_stream(
         self,

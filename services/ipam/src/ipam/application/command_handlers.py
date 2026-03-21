@@ -118,11 +118,9 @@ class UpdatePrefixHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdatePrefixCommand) -> None:
-        stream = await self._event_store.load_stream(command.prefix_id)
-        if not stream:
+        prefix = await self._event_store.load_aggregate(Prefix, command.prefix_id)
+        if prefix is None:
             raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
-        prefix = Prefix(aggregate_id=command.prefix_id)
-        prefix.load_from_history(stream)
 
         prefix.update(
             description=command.description,
@@ -134,7 +132,9 @@ class UpdatePrefixHandler(CommandHandler[None]):
         )
 
         new_events = prefix.collect_uncommitted_events()
-        await self._event_store.append(prefix.id, new_events, expected_version=prefix.version - len(new_events))
+        await self._event_store.append(
+            prefix.id, new_events, expected_version=prefix.version - len(new_events), aggregate=prefix
+        )
         await self._read_model_repo.upsert_from_aggregate(prefix)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -151,16 +151,16 @@ class ChangePrefixStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangePrefixStatusCommand) -> None:
-        stream = await self._event_store.load_stream(command.prefix_id)
-        if not stream:
+        prefix = await self._event_store.load_aggregate(Prefix, command.prefix_id)
+        if prefix is None:
             raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
-        prefix = Prefix(aggregate_id=command.prefix_id)
-        prefix.load_from_history(stream)
 
         prefix.change_status(PrefixStatus(command.status))
 
         new_events = prefix.collect_uncommitted_events()
-        await self._event_store.append(prefix.id, new_events, expected_version=prefix.version - len(new_events))
+        await self._event_store.append(
+            prefix.id, new_events, expected_version=prefix.version - len(new_events), aggregate=prefix
+        )
         await self._read_model_repo.upsert_from_aggregate(prefix)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -177,16 +177,16 @@ class DeletePrefixHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeletePrefixCommand) -> None:
-        stream = await self._event_store.load_stream(command.prefix_id)
-        if not stream:
+        prefix = await self._event_store.load_aggregate(Prefix, command.prefix_id)
+        if prefix is None:
             raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
-        prefix = Prefix(aggregate_id=command.prefix_id)
-        prefix.load_from_history(stream)
 
         prefix.delete()
 
         new_events = prefix.collect_uncommitted_events()
-        await self._event_store.append(prefix.id, new_events, expected_version=prefix.version - len(new_events))
+        await self._event_store.append(
+            prefix.id, new_events, expected_version=prefix.version - len(new_events), aggregate=prefix
+        )
         await self._read_model_repo.mark_deleted(prefix.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -240,11 +240,9 @@ class UpdateIPAddressHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateIPAddressCommand) -> None:
-        stream = await self._event_store.load_stream(command.ip_id)
-        if not stream:
+        ip = await self._event_store.load_aggregate(IPAddress, command.ip_id)
+        if ip is None:
             raise EntityNotFoundError(f"IP address {command.ip_id} not found")
-        ip = IPAddress(aggregate_id=command.ip_id)
-        ip.load_from_history(stream)
 
         ip.update(
             dns_name=command.dns_name,
@@ -254,7 +252,7 @@ class UpdateIPAddressHandler(CommandHandler[None]):
         )
 
         new_events = ip.collect_uncommitted_events()
-        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events))
+        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events), aggregate=ip)
         await self._read_model_repo.upsert_from_aggregate(ip)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -271,16 +269,14 @@ class ChangeIPAddressStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangeIPAddressStatusCommand) -> None:
-        stream = await self._event_store.load_stream(command.ip_id)
-        if not stream:
+        ip = await self._event_store.load_aggregate(IPAddress, command.ip_id)
+        if ip is None:
             raise EntityNotFoundError(f"IP address {command.ip_id} not found")
-        ip = IPAddress(aggregate_id=command.ip_id)
-        ip.load_from_history(stream)
 
         ip.change_status(IPAddressStatus(command.status))
 
         new_events = ip.collect_uncommitted_events()
-        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events))
+        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events), aggregate=ip)
         await self._read_model_repo.upsert_from_aggregate(ip)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -297,16 +293,14 @@ class DeleteIPAddressHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteIPAddressCommand) -> None:
-        stream = await self._event_store.load_stream(command.ip_id)
-        if not stream:
+        ip = await self._event_store.load_aggregate(IPAddress, command.ip_id)
+        if ip is None:
             raise EntityNotFoundError(f"IP address {command.ip_id} not found")
-        ip = IPAddress(aggregate_id=command.ip_id)
-        ip.load_from_history(stream)
 
         ip.delete()
 
         new_events = ip.collect_uncommitted_events()
-        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events))
+        await self._event_store.append(ip.id, new_events, expected_version=ip.version - len(new_events), aggregate=ip)
         await self._read_model_repo.mark_deleted(ip.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -355,11 +349,9 @@ class UpdateVRFHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateVRFCommand) -> None:
-        stream = await self._event_store.load_stream(command.vrf_id)
-        if not stream:
+        vrf = await self._event_store.load_aggregate(VRF, command.vrf_id)
+        if vrf is None:
             raise EntityNotFoundError(f"VRF {command.vrf_id} not found")
-        vrf = VRF(aggregate_id=command.vrf_id)
-        vrf.load_from_history(stream)
 
         vrf.update(
             name=command.name,
@@ -369,7 +361,9 @@ class UpdateVRFHandler(CommandHandler[None]):
         )
 
         new_events = vrf.collect_uncommitted_events()
-        await self._event_store.append(vrf.id, new_events, expected_version=vrf.version - len(new_events))
+        await self._event_store.append(
+            vrf.id, new_events, expected_version=vrf.version - len(new_events), aggregate=vrf
+        )
         await self._read_model_repo.upsert_from_aggregate(vrf)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -386,16 +380,16 @@ class DeleteVRFHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteVRFCommand) -> None:
-        stream = await self._event_store.load_stream(command.vrf_id)
-        if not stream:
+        vrf = await self._event_store.load_aggregate(VRF, command.vrf_id)
+        if vrf is None:
             raise EntityNotFoundError(f"VRF {command.vrf_id} not found")
-        vrf = VRF(aggregate_id=command.vrf_id)
-        vrf.load_from_history(stream)
 
         vrf.delete()
 
         new_events = vrf.collect_uncommitted_events()
-        await self._event_store.append(vrf.id, new_events, expected_version=vrf.version - len(new_events))
+        await self._event_store.append(
+            vrf.id, new_events, expected_version=vrf.version - len(new_events), aggregate=vrf
+        )
         await self._read_model_repo.mark_deleted(vrf.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -447,11 +441,9 @@ class UpdateVLANHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateVLANCommand) -> None:
-        stream = await self._event_store.load_stream(command.vlan_id)
-        if not stream:
+        vlan = await self._event_store.load_aggregate(VLAN, command.vlan_id)
+        if vlan is None:
             raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
-        vlan = VLAN(aggregate_id=command.vlan_id)
-        vlan.load_from_history(stream)
 
         vlan.update(
             name=command.name,
@@ -462,7 +454,9 @@ class UpdateVLANHandler(CommandHandler[None]):
         )
 
         new_events = vlan.collect_uncommitted_events()
-        await self._event_store.append(vlan.id, new_events, expected_version=vlan.version - len(new_events))
+        await self._event_store.append(
+            vlan.id, new_events, expected_version=vlan.version - len(new_events), aggregate=vlan
+        )
         await self._read_model_repo.upsert_from_aggregate(vlan)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -479,16 +473,16 @@ class ChangeVLANStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangeVLANStatusCommand) -> None:
-        stream = await self._event_store.load_stream(command.vlan_id)
-        if not stream:
+        vlan = await self._event_store.load_aggregate(VLAN, command.vlan_id)
+        if vlan is None:
             raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
-        vlan = VLAN(aggregate_id=command.vlan_id)
-        vlan.load_from_history(stream)
 
         vlan.change_status(VLANStatus(command.status))
 
         new_events = vlan.collect_uncommitted_events()
-        await self._event_store.append(vlan.id, new_events, expected_version=vlan.version - len(new_events))
+        await self._event_store.append(
+            vlan.id, new_events, expected_version=vlan.version - len(new_events), aggregate=vlan
+        )
         await self._read_model_repo.upsert_from_aggregate(vlan)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -505,16 +499,16 @@ class DeleteVLANHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteVLANCommand) -> None:
-        stream = await self._event_store.load_stream(command.vlan_id)
-        if not stream:
+        vlan = await self._event_store.load_aggregate(VLAN, command.vlan_id)
+        if vlan is None:
             raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
-        vlan = VLAN(aggregate_id=command.vlan_id)
-        vlan.load_from_history(stream)
 
         vlan.delete()
 
         new_events = vlan.collect_uncommitted_events()
-        await self._event_store.append(vlan.id, new_events, expected_version=vlan.version - len(new_events))
+        await self._event_store.append(
+            vlan.id, new_events, expected_version=vlan.version - len(new_events), aggregate=vlan
+        )
         await self._read_model_repo.mark_deleted(vlan.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -565,11 +559,9 @@ class UpdateIPRangeHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateIPRangeCommand) -> None:
-        stream = await self._event_store.load_stream(command.range_id)
-        if not stream:
+        ip_range = await self._event_store.load_aggregate(IPRange, command.range_id)
+        if ip_range is None:
             raise EntityNotFoundError(f"IP range {command.range_id} not found")
-        ip_range = IPRange(aggregate_id=command.range_id)
-        ip_range.load_from_history(stream)
 
         ip_range.update(
             description=command.description,
@@ -579,7 +571,9 @@ class UpdateIPRangeHandler(CommandHandler[None]):
         )
 
         new_events = ip_range.collect_uncommitted_events()
-        await self._event_store.append(ip_range.id, new_events, expected_version=ip_range.version - len(new_events))
+        await self._event_store.append(
+            ip_range.id, new_events, expected_version=ip_range.version - len(new_events), aggregate=ip_range
+        )
         await self._read_model_repo.upsert_from_aggregate(ip_range)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -596,16 +590,16 @@ class ChangeIPRangeStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangeIPRangeStatusCommand) -> None:
-        stream = await self._event_store.load_stream(command.range_id)
-        if not stream:
+        ip_range = await self._event_store.load_aggregate(IPRange, command.range_id)
+        if ip_range is None:
             raise EntityNotFoundError(f"IP range {command.range_id} not found")
-        ip_range = IPRange(aggregate_id=command.range_id)
-        ip_range.load_from_history(stream)
 
         ip_range.change_status(IPRangeStatus(command.status))
 
         new_events = ip_range.collect_uncommitted_events()
-        await self._event_store.append(ip_range.id, new_events, expected_version=ip_range.version - len(new_events))
+        await self._event_store.append(
+            ip_range.id, new_events, expected_version=ip_range.version - len(new_events), aggregate=ip_range
+        )
         await self._read_model_repo.upsert_from_aggregate(ip_range)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -622,16 +616,16 @@ class DeleteIPRangeHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteIPRangeCommand) -> None:
-        stream = await self._event_store.load_stream(command.range_id)
-        if not stream:
+        ip_range = await self._event_store.load_aggregate(IPRange, command.range_id)
+        if ip_range is None:
             raise EntityNotFoundError(f"IP range {command.range_id} not found")
-        ip_range = IPRange(aggregate_id=command.range_id)
-        ip_range.load_from_history(stream)
 
         ip_range.delete()
 
         new_events = ip_range.collect_uncommitted_events()
-        await self._event_store.append(ip_range.id, new_events, expected_version=ip_range.version - len(new_events))
+        await self._event_store.append(
+            ip_range.id, new_events, expected_version=ip_range.version - len(new_events), aggregate=ip_range
+        )
         await self._read_model_repo.mark_deleted(ip_range.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -679,11 +673,9 @@ class UpdateRIRHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateRIRCommand) -> None:
-        stream = await self._event_store.load_stream(command.rir_id)
-        if not stream:
+        rir = await self._event_store.load_aggregate(RIR, command.rir_id)
+        if rir is None:
             raise EntityNotFoundError(f"RIR {command.rir_id} not found")
-        rir = RIR(aggregate_id=command.rir_id)
-        rir.load_from_history(stream)
 
         rir.update(
             description=command.description,
@@ -693,7 +685,9 @@ class UpdateRIRHandler(CommandHandler[None]):
         )
 
         new_events = rir.collect_uncommitted_events()
-        await self._event_store.append(rir.id, new_events, expected_version=rir.version - len(new_events))
+        await self._event_store.append(
+            rir.id, new_events, expected_version=rir.version - len(new_events), aggregate=rir
+        )
         await self._read_model_repo.upsert_from_aggregate(rir)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -710,16 +704,16 @@ class DeleteRIRHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteRIRCommand) -> None:
-        stream = await self._event_store.load_stream(command.rir_id)
-        if not stream:
+        rir = await self._event_store.load_aggregate(RIR, command.rir_id)
+        if rir is None:
             raise EntityNotFoundError(f"RIR {command.rir_id} not found")
-        rir = RIR(aggregate_id=command.rir_id)
-        rir.load_from_history(stream)
 
         rir.delete()
 
         new_events = rir.collect_uncommitted_events()
-        await self._event_store.append(rir.id, new_events, expected_version=rir.version - len(new_events))
+        await self._event_store.append(
+            rir.id, new_events, expected_version=rir.version - len(new_events), aggregate=rir
+        )
         await self._read_model_repo.mark_deleted(rir.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -768,11 +762,9 @@ class UpdateASNHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateASNCommand) -> None:
-        stream = await self._event_store.load_stream(command.asn_id)
-        if not stream:
+        asn = await self._event_store.load_aggregate(ASN, command.asn_id)
+        if asn is None:
             raise EntityNotFoundError(f"ASN {command.asn_id} not found")
-        asn = ASN(aggregate_id=command.asn_id)
-        asn.load_from_history(stream)
 
         asn.update(
             description=command.description,
@@ -782,7 +774,9 @@ class UpdateASNHandler(CommandHandler[None]):
         )
 
         new_events = asn.collect_uncommitted_events()
-        await self._event_store.append(asn.id, new_events, expected_version=asn.version - len(new_events))
+        await self._event_store.append(
+            asn.id, new_events, expected_version=asn.version - len(new_events), aggregate=asn
+        )
         await self._read_model_repo.upsert_from_aggregate(asn)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -799,16 +793,16 @@ class DeleteASNHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteASNCommand) -> None:
-        stream = await self._event_store.load_stream(command.asn_id)
-        if not stream:
+        asn = await self._event_store.load_aggregate(ASN, command.asn_id)
+        if asn is None:
             raise EntityNotFoundError(f"ASN {command.asn_id} not found")
-        asn = ASN(aggregate_id=command.asn_id)
-        asn.load_from_history(stream)
 
         asn.delete()
 
         new_events = asn.collect_uncommitted_events()
-        await self._event_store.append(asn.id, new_events, expected_version=asn.version - len(new_events))
+        await self._event_store.append(
+            asn.id, new_events, expected_version=asn.version - len(new_events), aggregate=asn
+        )
         await self._read_model_repo.mark_deleted(asn.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -859,11 +853,9 @@ class UpdateFHRPGroupHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateFHRPGroupCommand) -> None:
-        stream = await self._event_store.load_stream(command.fhrp_group_id)
-        if not stream:
+        group = await self._event_store.load_aggregate(FHRPGroup, command.fhrp_group_id)
+        if group is None:
             raise EntityNotFoundError(f"FHRP group {command.fhrp_group_id} not found")
-        group = FHRPGroup(aggregate_id=command.fhrp_group_id)
-        group.load_from_history(stream)
 
         group.update(
             name=command.name,
@@ -875,7 +867,9 @@ class UpdateFHRPGroupHandler(CommandHandler[None]):
         )
 
         new_events = group.collect_uncommitted_events()
-        await self._event_store.append(group.id, new_events, expected_version=group.version - len(new_events))
+        await self._event_store.append(
+            group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+        )
         await self._read_model_repo.upsert_from_aggregate(group)
         await self._event_producer.publish_many("ipam.events", new_events)
 
@@ -892,16 +886,16 @@ class DeleteFHRPGroupHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteFHRPGroupCommand) -> None:
-        stream = await self._event_store.load_stream(command.fhrp_group_id)
-        if not stream:
+        group = await self._event_store.load_aggregate(FHRPGroup, command.fhrp_group_id)
+        if group is None:
             raise EntityNotFoundError(f"FHRP group {command.fhrp_group_id} not found")
-        group = FHRPGroup(aggregate_id=command.fhrp_group_id)
-        group.load_from_history(stream)
 
         group.delete()
 
         new_events = group.collect_uncommitted_events()
-        await self._event_store.append(group.id, new_events, expected_version=group.version - len(new_events))
+        await self._event_store.append(
+            group.id, new_events, expected_version=group.version - len(new_events), aggregate=group
+        )
         await self._read_model_repo.mark_deleted(group.id)
         await self._event_producer.publish_many("ipam.events", new_events)
 
