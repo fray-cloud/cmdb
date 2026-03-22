@@ -1,0 +1,9 @@
+FROM cmdb-base:dev
+COPY services/tenant/pyproject.toml ./services/tenant/pyproject.toml
+COPY services/tenant/alembic.ini ./services/tenant/alembic.ini
+COPY services/tenant/alembic ./services/tenant/alembic
+COPY services/tenant/alembic_tenant_db ./services/tenant/alembic_tenant_db
+COPY services/tenant/src ./services/tenant/src
+RUN uv sync --frozen --package cmdb-tenant
+EXPOSE 8000
+CMD ["uv", "run", "--package", "cmdb-tenant", "uvicorn", "tenant.interface.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,0 +1,8 @@
+FROM cmdb-base:dev
+COPY services/ipam/pyproject.toml ./services/ipam/pyproject.toml
+COPY services/ipam/alembic.ini ./services/ipam/alembic.ini
+COPY services/ipam/alembic ./services/ipam/alembic
+COPY services/ipam/src ./services/ipam/src
+RUN uv sync --frozen --package cmdb-ipam
+EXPOSE 8000
+CMD ["uv", "run", "--package", "cmdb-ipam", "uvicorn", "ipam.interface.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,0 +1,12 @@
+{
+  "name": "cmdb-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @cmdb/client dev",
+    "dev:admin": "pnpm --filter @cmdb/admin dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,json,css,md}\""
+  }
+}
