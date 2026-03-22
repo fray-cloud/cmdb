@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@cmdb/shared";
 import { useTheme } from "next-themes";
 import { LogOut, Menu, Moon, Search, Sun, User } from "lucide-react";
@@ -11,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { GlobalSearch } from "@/components/search/global-search";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -34,6 +36,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       <div className="flex-1" />
 
+      <GlobalSearch />
       <Button variant="outline" size="sm" className="hidden gap-2 sm:flex">
         <Search className="h-4 w-4" />
         <span className="text-muted-foreground">Search...</span>
