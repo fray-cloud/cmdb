@@ -206,6 +206,67 @@ services:
     networks:
       - cmdb-network
 
+  # ── Init containers (migration) ──
+  auth-init:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile.dev
+    command: uv run --package cmdb-auth alembic upgrade head
+    working_dir: /app/services/auth
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_auth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["init"]
+    networks:
+      - cmdb-network
+
+  ipam-init:
+    build:
+      context: .
+      dockerfile: services/ipam/Dockerfile.dev
+    command: uv run --package cmdb-ipam alembic upgrade head
+    working_dir: /app/services/ipam
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_ipam
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["init"]
+    networks:
+      - cmdb-network
+
+  event-init:
+    build:
+      context: .
+      dockerfile: services/event/Dockerfile.dev
+    command: uv run --package cmdb-event alembic upgrade head
+    working_dir: /app/services/event
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_event
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["init"]
+    networks:
+      - cmdb-network
+
+  tenant-init:
+    build:
+      context: .
+      dockerfile: services/tenant/Dockerfile.dev
+    command: uv run --package cmdb-tenant alembic upgrade head
+    working_dir: /app/services/tenant
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_tenant
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["init"]
+    networks:
+      - cmdb-network
+
 volumes:
   postgres-data:
   kafka-data:

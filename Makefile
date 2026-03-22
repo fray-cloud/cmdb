@@ -1,4 +1,4 @@
-.PHONY: dev-up dev-down dev-logs dev-build prod-up prod-down prod-build \
+.PHONY: dev-up dev-down dev-logs dev-build dev-init prod-up prod-down prod-build \
        lint format test db-shell kafka-shell redis-shell clean dev-keygen dev-cert
 
 # Dev environment
@@ -14,6 +14,9 @@ dev-logs:
 dev-build:
 	docker build --target dev -t cmdb-base:dev -f infrastructure/docker/Dockerfile.base .
 	docker compose -f docker-compose.dev.yml build
+
+dev-init:
+	docker compose -f docker-compose.dev.yml --profile init up --abort-on-container-exit
 
 # Prod environment
 prod-up:

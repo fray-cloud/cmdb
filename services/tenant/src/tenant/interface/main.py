@@ -14,6 +14,7 @@ from tenant.infrastructure.database import Database
 from tenant.infrastructure.db_provisioning import TenantDbProvisioner
 from tenant.infrastructure.tenant_db_manager import TenantDbManager
 from tenant.interface.router import router
+from tenant.interface.setup_router import setup_router
 
 
 @asynccontextmanager
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
     app.add_exception_handler(DomainError, domain_exception_handler)
     app.include_router(router)
+    app.include_router(setup_router)
     return app
 
 
