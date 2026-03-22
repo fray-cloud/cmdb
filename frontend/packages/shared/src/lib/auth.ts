@@ -11,9 +11,12 @@ export function isAuthenticated(): boolean {
 }
 
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
-  const data = await authApi.post<TokenResponse>("/auth/login", credentials);
+  const tenantId = credentials.tenant_id || localStorage.getItem("tenant_id");
+  const payload = { ...credentials, tenant_id: tenantId };
+  const data = await authApi.post<TokenResponse>("/auth/login", payload);
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("refresh_token", data.refresh_token);
+  if (tenantId) localStorage.setItem("tenant_id", tenantId);
   return data;
 }
 
@@ -27,6 +30,19 @@ export function logout(): void {
   window.location.href = "/login";
 }
 
-export async function getCurrentUser(): Promise<User> {
-  return authApi.get<User>("/auth/me");
+export function getCurrentUser(): User | null {
+  const token = getAccessToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return {
+      id: payload.sub,
+      email: "",
+      username: "",
+      status: "active",
+      roles: payload.roles || [],
+    };
+  } catch {
+    return null;
+  }
 }

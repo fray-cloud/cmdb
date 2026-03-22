@@ -1,6 +1,7 @@
 export interface LoginRequest {
   email: string;
   password: string;
+  tenant_id?: string;
 }
 
 export interface TokenResponse {
@@ -21,4 +22,5 @@ export interface SignupRequest {
   email: string;
   username: string;
   password: string;
+  tenant_id?: string;
 }

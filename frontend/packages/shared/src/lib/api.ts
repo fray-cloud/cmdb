@@ -68,7 +68,8 @@ async function request<T>(path: string, options: RequestOptions = {}, baseUrl: s
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(error.detail || error.title || `Request failed: ${res.status}`);
+    const detail = Array.isArray(error.detail) ? error.detail.map((d: { msg?: string }) => d.msg).join(", ") : error.detail;
+    throw new Error(detail || error.title || `Request failed: ${res.status}`);
   }
 
   if (res.status === 204) {

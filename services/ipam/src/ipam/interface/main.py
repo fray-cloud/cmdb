@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from strawberry.fastapi import GraphQLRouter
 
 from ipam.domain.events import (
@@ -199,6 +200,12 @@ def create_app() -> FastAPI:
         description="IP Address Management service — prefixes, addresses, VRFs, VLANs, and more.",
         openapi_tags=OPENAPI_TAGS,
         lifespan=lifespan,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.add_middleware(UserMiddleware)
     app.add_middleware(CorrelationIdMiddleware)

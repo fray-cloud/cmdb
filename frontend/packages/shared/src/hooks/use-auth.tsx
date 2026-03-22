@@ -22,19 +22,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (checkAuth()) {
-      getCurrentUser()
-        .then(setUser)
-        .catch(() => setUser(null))
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
+      const user = getCurrentUser();
+      setUser(user);
     }
+    setIsLoading(false);
   }, []);
 
   const login = useCallback(async (credentials: LoginRequest) => {
     await authLogin(credentials);
-    const currentUser = await getCurrentUser();
-    setUser(currentUser);
+    const user = getCurrentUser();
+    setUser(user);
   }, []);
 
   const logout = useCallback(() => {

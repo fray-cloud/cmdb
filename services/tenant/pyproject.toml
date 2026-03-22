@@ -11,6 +11,9 @@ dependencies = [
     "asyncpg",
     "alembic",
     "pydantic-settings>=2.0",
+    "aiokafka",
+    "redis>=5.0",
+    "psycopg2-binary>=2.9",
 ]
 
 [build-system]

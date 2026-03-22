@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from auth.domain.events import (
     RoleAssigned,
@@ -72,6 +73,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="CMDB Auth Service", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.add_middleware(CorrelationIdMiddleware)
     app.add_exception_handler(DomainError, domain_exception_handler)
     app.include_router(auth_router)

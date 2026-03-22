@@ -71,4 +71,3 @@ dev-keygen:
 
 clean:
 	docker compose -f docker-compose.dev.yml down -v --remove-orphans
-	docker compose -f docker-compose.yml down -v --remove-orphans

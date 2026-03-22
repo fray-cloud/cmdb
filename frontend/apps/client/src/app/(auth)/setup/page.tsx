@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { setupCreateTenant } from "@cmdb/shared/lib/setup";
-import { signup } from "@cmdb/shared";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -33,6 +32,7 @@ export default function SetupPage() {
     try {
       const result = await setupCreateTenant({ name: tenantName, slug: tenantSlug });
       setTenantId(result.id);
+      localStorage.setItem("tenant_id", result.id);
       setStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create tenant");
@@ -50,7 +50,17 @@ export default function SetupPage() {
     }
     setLoading(true);
     try {
-      await signup({ email, username, password, tenant_id: tenantId } as never);
+      const authUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8002";
+      const res = await fetch(`${authUrl}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, username, password, tenant_id: tenantId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        const detail = Array.isArray(err.detail) ? err.detail.map((d: { msg?: string }) => d.msg).join(", ") : err.detail;
+        throw new Error(detail || "Registration failed");
+      }
       setStep(3);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create admin");
