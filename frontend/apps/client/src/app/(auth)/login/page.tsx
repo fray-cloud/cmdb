@@ -37,8 +37,7 @@ function LoginForm() {
   const successMessage = searchParams.get("message");
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost";
-    fetch(`${apiUrl}/api/v1/tenant/tenants?limit=100`)
+    fetch(`/api/v1/tenant/tenants?limit=100`)
       .then((r) => r.json())
       .then((data) => {
         const items = data.items || [];
