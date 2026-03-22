@@ -1,5 +1,5 @@
 import type { LoginRequest, SignupRequest, TokenResponse, User } from "../types/auth";
-import { api } from "./api";
+import { authApi } from "./api";
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -11,14 +11,14 @@ export function isAuthenticated(): boolean {
 }
 
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
-  const data = await api.post<TokenResponse>("/auth/login", credentials);
+  const data = await authApi.post<TokenResponse>("/auth/login", credentials);
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("refresh_token", data.refresh_token);
   return data;
 }
 
 export async function signup(data: SignupRequest): Promise<User> {
-  return api.post<User>("/auth/users", data);
+  return authApi.post<User>("/auth/register", data);
 }
 
 export function logout(): void {
@@ -28,5 +28,5 @@ export function logout(): void {
 }
 
 export async function getCurrentUser(): Promise<User> {
-  return api.get<User>("/auth/me");
+  return authApi.get<User>("/auth/me");
 }

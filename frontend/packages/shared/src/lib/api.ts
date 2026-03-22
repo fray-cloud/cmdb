@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8002";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -9,7 +10,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const res = await fetch(`${AUTH_API_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -26,7 +27,7 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(path: string, options: RequestOptions = {}, baseUrl: string = API_BASE_URL): Promise<T> {
   const accessToken = localStorage.getItem("access_token");
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -42,7 +43,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     headers["X-Tenant-ID"] = tenantId;
   }
 
-  let res = await fetch(`${API_BASE_URL}${path}`, {
+  let res = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -52,7 +53,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     const newToken = await refreshAccessToken();
     if (newToken) {
       headers["Authorization"] = `Bearer ${newToken}`;
-      res = await fetch(`${API_BASE_URL}${path}`, {
+      res = await fetch(`${baseUrl}${path}`, {
         ...options,
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
@@ -82,4 +83,9 @@ export const api = {
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+};
+
+export const authApi = {
+  get: <T>(path: string) => request<T>(path, {}, AUTH_API_URL),
+  post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }, AUTH_API_URL),
 };

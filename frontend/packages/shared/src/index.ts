@@ -20,7 +20,7 @@ export type {
 } from "./types/ipam";
 
 // API
-export { api } from "./lib/api";
+export { api, authApi } from "./lib/api";
 export {
   prefixApi,
   ipAddressApi,
