@@ -1,0 +1,20 @@
+services:
+  auth:
+    build:
+      context: ../../
+      dockerfile: services/auth/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_auth
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      RSA_PRIVATE_KEY: ${RSA_PRIVATE_KEY:-}
+      RSA_PUBLIC_KEY: ${RSA_PUBLIC_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cmdb-network

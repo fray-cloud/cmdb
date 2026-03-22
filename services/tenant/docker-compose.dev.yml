@@ -1,0 +1,26 @@
+services:
+  tenant:
+    build:
+      context: ../../
+      dockerfile: services/tenant/Dockerfile.dev
+    volumes:
+      - ../../services/tenant/src:/app/services/tenant/src
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-cmdb}:${POSTGRES_PASSWORD:-cmdb}@postgres:5432/cmdb_tenant
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cmdb-network
+
+networks:
+  cmdb-network:
+    external: true

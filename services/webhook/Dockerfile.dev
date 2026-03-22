@@ -1,0 +1,5 @@
+FROM cmdb-base:dev
+COPY services/webhook/pyproject.toml ./services/webhook/pyproject.toml
+RUN uv sync --frozen --package cmdb-webhook
+EXPOSE 8000
+CMD ["uv", "run", "--package", "cmdb-webhook", "uvicorn", "webhook.interface.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

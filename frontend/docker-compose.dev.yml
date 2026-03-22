@@ -1,0 +1,16 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile.dev
+    volumes:
+      - ./apps/client/src:/app/src
+      - ./packages:/app/packages
+    ports:
+      - "3000:3000"
+    networks:
+      - cmdb-network
+
+networks:
+  cmdb-network:
+    external: true

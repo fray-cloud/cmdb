@@ -1,0 +1,8 @@
+FROM cmdb-base:dev
+COPY services/auth/pyproject.toml ./services/auth/pyproject.toml
+COPY services/auth/alembic.ini ./services/auth/alembic.ini
+COPY services/auth/alembic ./services/auth/alembic
+COPY services/auth/src ./services/auth/src
+RUN uv sync --frozen --package cmdb-auth
+EXPOSE 8000
+CMD ["uv", "run", "--package", "cmdb-auth", "uvicorn", "auth.interface.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

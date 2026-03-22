@@ -1,0 +1,8 @@
+include:
+  - path: infrastructure/docker-compose.yml
+  - path: services/ipam/docker-compose.yml
+  - path: services/auth/docker-compose.yml
+  - path: services/tenant/docker-compose.yml
+  - path: services/event/docker-compose.yml
+  - path: services/webhook/docker-compose.yml
+  - path: frontend/docker-compose.yml
