@@ -56,7 +56,7 @@ from ipam.interface.schemas import (
     UpdatePrefixRequest,
 )
 from ipam.interface.schemas import (
-    BulkUpdatePrefixItem as BulkUpdatePrefixItemSchema,
+    BulkUpdatePrefixItem as BulkUpdatePrefixSchema,
 )
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
@@ -64,8 +64,13 @@ from shared.cqrs.bus import CommandBus, QueryBus
 router = APIRouter(prefix="/prefixes", tags=["prefixes"])
 
 
-def _get_command_bus(request: Request) -> CommandBus:
-    session = request.app.state.database.session()
+def _get_session(request: Request):
+    return request.app.state.database.session()
+
+
+def _get_command_bus(request: Request, session=None) -> CommandBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresPrefixReadModelRepository(session)
     event_store = request.app.state.event_store
     event_producer = request.app.state.event_producer
@@ -93,8 +98,9 @@ def _get_command_bus(request: Request) -> CommandBus:
     return bus
 
 
-def _get_query_bus(request: Request) -> QueryBus:
-    session = request.app.state.database.session()
+def _get_query_bus(request: Request, session=None) -> QueryBus:
+    if session is None:
+        session = _get_session(request)
     prefix_repo = PostgresPrefixReadModelRepository(session)
     ip_repo = PostgresIPAddressReadModelRepository(session)
 
@@ -116,10 +122,22 @@ def _get_query_bus(request: Request) -> QueryBus:
 )
 async def create_prefix(
     body: CreatePrefixRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
+) -> PrefixResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
+    prefix_id = await command_bus.dispatch(CreatePrefixCommand(**body.model_dump()))
+    await session.commit()
+    result = await query_bus.dispatch(GetPrefixQuery(prefix_id=prefix_id))
+    return PrefixResponse(**result.model_dump())
+
+
+@router.get("/{prefix_id}", response_model=PrefixResponse)
+async def get_prefix(
+    prefix_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> PrefixResponse:
-    prefix_id = await command_bus.dispatch(CreatePrefixCommand(**body.model_dump()))
     result = await query_bus.dispatch(GetPrefixQuery(prefix_id=prefix_id))
     return PrefixResponse(**result.model_dump())
 
@@ -170,47 +188,17 @@ async def list_prefixes(
     )
 
 
-@router.patch("/bulk", response_model=BulkUpdateResponse)
-async def bulk_update_prefixes(
-    body: list[BulkUpdatePrefixItemSchema],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-) -> BulkUpdateResponse:
-    updated = await command_bus.dispatch(
-        BulkUpdatePrefixesCommand(
-            items=[
-                BulkUpdatePrefixItem(prefix_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body
-            ]
-        )
-    )
-    return BulkUpdateResponse(updated=updated)
-
-
-@router.delete("/bulk", response_model=BulkDeleteResponse)
-async def bulk_delete_prefixes(
-    body: BulkDeleteRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-) -> BulkDeleteResponse:
-    deleted = await command_bus.dispatch(BulkDeletePrefixesCommand(ids=body.ids))
-    return BulkDeleteResponse(deleted=deleted)
-
-
-@router.get("/{prefix_id}", response_model=PrefixResponse)
-async def get_prefix(
-    prefix_id: UUID,
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
-) -> PrefixResponse:
-    result = await query_bus.dispatch(GetPrefixQuery(prefix_id=prefix_id))
-    return PrefixResponse(**result.model_dump())
-
-
 @router.patch("/{prefix_id}", response_model=PrefixResponse)
 async def update_prefix(
     prefix_id: UUID,
     body: UpdatePrefixRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> PrefixResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     await command_bus.dispatch(UpdatePrefixCommand(prefix_id=prefix_id, **body.model_dump(exclude_unset=True)))
+    await session.commit()
     result = await query_bus.dispatch(GetPrefixQuery(prefix_id=prefix_id))
     return PrefixResponse(**result.model_dump())
 
@@ -219,10 +207,13 @@ async def update_prefix(
 async def change_prefix_status(
     prefix_id: UUID,
     body: ChangeStatusRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> PrefixResponse:
-    await command_bus.dispatch(ChangePrefixStatusCommand(prefix_id=prefix_id, status=body.status))
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
+    await command_bus.dispatch(ChangePrefixStatusCommand(prefix_id=prefix_id, new_status=body.status))
+    await session.commit()
     result = await query_bus.dispatch(GetPrefixQuery(prefix_id=prefix_id))
     return PrefixResponse(**result.model_dump())
 
@@ -230,23 +221,54 @@ async def change_prefix_status(
 @router.delete("/{prefix_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_prefix(
     prefix_id: UUID,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> None:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeletePrefixCommand(prefix_id=prefix_id))
+    await session.commit()
 
 
-@router.post(
-    "/bulk",
-    status_code=status.HTTP_201_CREATED,
-    response_model=BulkCreateResponse,
-)
+@router.patch("/bulk", response_model=BulkUpdateResponse)
+async def bulk_update_prefixes(
+    body: list[BulkUpdatePrefixSchema],
+    request: Request,
+) -> BulkUpdateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    updated = await command_bus.dispatch(
+        BulkUpdatePrefixesCommand(
+            items=[
+                BulkUpdatePrefixItem(prefix_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body
+            ]
+        )
+    )
+    await session.commit()
+    return BulkUpdateResponse(updated=updated)
+
+
+@router.delete("/bulk", response_model=BulkDeleteResponse)
+async def bulk_delete_prefixes(
+    body: BulkDeleteRequest,
+    request: Request,
+) -> BulkDeleteResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    deleted = await command_bus.dispatch(BulkDeletePrefixesCommand(ids=body.ids))
+    await session.commit()
+    return BulkDeleteResponse(deleted=deleted)
+
+
+@router.post("/bulk", response_model=BulkCreateResponse, status_code=status.HTTP_201_CREATED)
 async def bulk_create_prefixes(
     body: list[CreatePrefixRequest],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkCreateResponse:
-    ids = await command_bus.dispatch(
-        BulkCreatePrefixesCommand(items=[CreatePrefixCommand(**i.model_dump()) for i in body])
-    )
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    commands = [CreatePrefixCommand(**b.model_dump()) for b in body]
+    ids = await command_bus.dispatch(BulkCreatePrefixesCommand(items=commands))
+    await session.commit()
     return BulkCreateResponse(ids=ids, count=len(ids))
 
 
@@ -265,7 +287,7 @@ async def get_prefix_utilization(
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> dict:
     utilization = await query_bus.dispatch(GetPrefixUtilizationQuery(prefix_id=prefix_id))
-    return {"prefix_id": prefix_id, "utilization": utilization}
+    return {"utilization": utilization}
 
 
 @router.get("/{prefix_id}/available-prefixes")
@@ -277,7 +299,7 @@ async def get_available_prefixes(
     available = await query_bus.dispatch(
         GetAvailablePrefixesQuery(prefix_id=prefix_id, desired_prefix_length=desired_prefix_length)
     )
-    return {"prefix_id": prefix_id, "available_prefixes": available}
+    return {"available_prefixes": available}
 
 
 @router.get("/{prefix_id}/available-ips")
@@ -287,4 +309,4 @@ async def get_available_ips(
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> dict:
     available = await query_bus.dispatch(GetAvailableIPsQuery(prefix_id=prefix_id, count=count))
-    return {"prefix_id": prefix_id, "available_ips": available}
+    return {"available_ips": available}
