@@ -10,3 +10,7 @@ services:
       - "3000:3000"
     networks:
       - cmdb-network
+
+networks:
+  cmdb-network:
+    external: true

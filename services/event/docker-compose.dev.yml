@@ -20,3 +20,7 @@ services:
         condition: service_healthy
     networks:
       - cmdb-network
+
+networks:
+  cmdb-network:
+    external: true

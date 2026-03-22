@@ -67,18 +67,12 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      auth:
-        condition: service_started
-      ipam:
-        condition: service_started
-      tenant:
-        condition: service_started
-      event:
-        condition: service_started
-      webhook:
-        condition: service_started
-      frontend:
-        condition: service_started
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cmdb-network
 
@@ -89,4 +83,4 @@ volumes:
 
 networks:
   cmdb-network:
-    driver: bridge
+    external: true
