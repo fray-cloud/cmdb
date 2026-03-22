@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -35,6 +36,34 @@ class ChangeLogResponse(BaseModel):
 
 class ChangeLogListResponse(BaseModel):
     items: list[ChangeLogResponse]
+    total: int
+    offset: int
+    limit: int
+
+
+# --- Journal Entry ---
+
+
+class CreateJournalEntryRequest(BaseModel):
+    object_type: str
+    object_id: UUID
+    entry_type: Literal["info", "success", "warning", "danger"]
+    comment: str
+
+
+class JournalEntryResponse(BaseModel):
+    id: UUID
+    object_type: str
+    object_id: UUID
+    entry_type: str
+    comment: str
+    user_id: UUID | None
+    tenant_id: UUID | None
+    created_at: datetime
+
+
+class JournalEntryListResponse(BaseModel):
+    items: list[JournalEntryResponse]
     total: int
     offset: int
     limit: int

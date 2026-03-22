@@ -12,7 +12,7 @@ from event.infrastructure.database import Database
 from event.infrastructure.event_consumer import EventConsumerWorker
 from event.interface.router import router
 from shared.api.errors import domain_exception_handler
-from shared.api.middleware import CorrelationIdMiddleware
+from shared.api.middleware import CorrelationIdMiddleware, UserMiddleware
 from shared.domain.exceptions import DomainError
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="CMDB Event Service", lifespan=lifespan)
+    app.add_middleware(UserMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_exception_handler(DomainError, domain_exception_handler)
     app.include_router(router)
