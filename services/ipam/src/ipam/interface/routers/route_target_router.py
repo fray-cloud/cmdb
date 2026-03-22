@@ -44,8 +44,13 @@ from shared.cqrs.bus import CommandBus, QueryBus
 router = APIRouter(prefix="/route-targets", tags=["route-targets"])
 
 
-def _get_command_bus(request: Request) -> CommandBus:
-    session = request.app.state.database.session()
+def _get_session(request: Request):
+    return request.app.state.database.session()
+
+
+def _get_command_bus(request: Request, session=None) -> CommandBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresRouteTargetReadModelRepository(session)
     event_store = request.app.state.event_store
     event_producer = request.app.state.event_producer
@@ -69,8 +74,9 @@ def _get_command_bus(request: Request) -> CommandBus:
     return bus
 
 
-def _get_query_bus(request: Request) -> QueryBus:
-    session = request.app.state.database.session()
+def _get_query_bus(request: Request, session=None) -> QueryBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresRouteTargetReadModelRepository(session)
 
     bus = QueryBus()
@@ -86,10 +92,13 @@ def _get_query_bus(request: Request) -> QueryBus:
 )
 async def create_route_target(
     body: CreateRouteTargetRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> RouteTargetResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     route_target_id = await command_bus.dispatch(CreateRouteTargetCommand(**body.model_dump()))
+    await session.commit()
     result = await query_bus.dispatch(GetRouteTargetQuery(route_target_id=route_target_id))
     return RouteTargetResponse(**result.model_dump())
 
@@ -137,8 +146,10 @@ async def list_route_targets(
 @router.patch("/bulk", response_model=BulkUpdateResponse)
 async def bulk_update_route_targets(
     body: list[BulkUpdateRouteTargetItemSchema],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkUpdateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
         BulkUpdateRouteTargetsCommand(
             items=[
@@ -147,15 +158,19 @@ async def bulk_update_route_targets(
             ]
         )
     )
+    await session.commit()
     return BulkUpdateResponse(updated=updated)
 
 
 @router.delete("/bulk", response_model=BulkDeleteResponse)
 async def bulk_delete_route_targets(
     body: BulkDeleteRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkDeleteResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteRouteTargetsCommand(ids=body.ids))
+    await session.commit()
     return BulkDeleteResponse(deleted=deleted)
 
 
@@ -172,12 +187,15 @@ async def get_route_target(
 async def update_route_target(
     route_target_id: UUID,
     body: UpdateRouteTargetRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> RouteTargetResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     await command_bus.dispatch(
         UpdateRouteTargetCommand(route_target_id=route_target_id, **body.model_dump(exclude_unset=True))
     )
+    await session.commit()
     result = await query_bus.dispatch(GetRouteTargetQuery(route_target_id=route_target_id))
     return RouteTargetResponse(**result.model_dump())
 
@@ -185,9 +203,12 @@ async def update_route_target(
 @router.delete("/{route_target_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_route_target(
     route_target_id: UUID,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> None:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteRouteTargetCommand(route_target_id=route_target_id))
+    await session.commit()
 
 
 @router.post(
@@ -197,9 +218,12 @@ async def delete_route_target(
 )
 async def bulk_create_route_targets(
     body: list[CreateRouteTargetRequest],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkCreateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(
         BulkCreateRouteTargetsCommand(items=[CreateRouteTargetCommand(**i.model_dump()) for i in body])
     )
+    await session.commit()
     return BulkCreateResponse(ids=ids, count=len(ids))

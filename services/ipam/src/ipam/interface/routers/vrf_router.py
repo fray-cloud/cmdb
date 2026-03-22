@@ -44,8 +44,13 @@ from shared.cqrs.bus import CommandBus, QueryBus
 router = APIRouter(prefix="/vrfs", tags=["vrfs"])
 
 
-def _get_command_bus(request: Request) -> CommandBus:
-    session = request.app.state.database.session()
+def _get_session(request: Request):
+    return request.app.state.database.session()
+
+
+def _get_command_bus(request: Request, session=None) -> CommandBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresVRFReadModelRepository(session)
     event_store = request.app.state.event_store
     event_producer = request.app.state.event_producer
@@ -69,8 +74,9 @@ def _get_command_bus(request: Request) -> CommandBus:
     return bus
 
 
-def _get_query_bus(request: Request) -> QueryBus:
-    session = request.app.state.database.session()
+def _get_query_bus(request: Request, session=None) -> QueryBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresVRFReadModelRepository(session)
 
     bus = QueryBus()
@@ -86,10 +92,13 @@ def _get_query_bus(request: Request) -> QueryBus:
 )
 async def create_vrf(
     body: CreateVRFRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> VRFResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     vrf_id = await command_bus.dispatch(CreateVRFCommand(**body.model_dump()))
+    await session.commit()
     result = await query_bus.dispatch(GetVRFQuery(vrf_id=vrf_id))
     return VRFResponse(**result.model_dump())
 
@@ -137,22 +146,28 @@ async def list_vrfs(
 @router.patch("/bulk", response_model=BulkUpdateResponse)
 async def bulk_update_vrfs(
     body: list[BulkUpdateVRFItemSchema],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkUpdateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
         BulkUpdateVRFsCommand(
             items=[BulkUpdateVRFItem(vrf_id=i.id, **i.model_dump(exclude={"id"}, exclude_unset=True)) for i in body]
         )
     )
+    await session.commit()
     return BulkUpdateResponse(updated=updated)
 
 
 @router.delete("/bulk", response_model=BulkDeleteResponse)
 async def bulk_delete_vrfs(
     body: BulkDeleteRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkDeleteResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteVRFsCommand(ids=body.ids))
+    await session.commit()
     return BulkDeleteResponse(deleted=deleted)
 
 
@@ -169,10 +184,13 @@ async def get_vrf(
 async def update_vrf(
     vrf_id: UUID,
     body: UpdateVRFRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> VRFResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     await command_bus.dispatch(UpdateVRFCommand(vrf_id=vrf_id, **body.model_dump(exclude_unset=True)))
+    await session.commit()
     result = await query_bus.dispatch(GetVRFQuery(vrf_id=vrf_id))
     return VRFResponse(**result.model_dump())
 
@@ -180,9 +198,12 @@ async def update_vrf(
 @router.delete("/{vrf_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_vrf(
     vrf_id: UUID,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> None:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteVRFCommand(vrf_id=vrf_id))
+    await session.commit()
 
 
 @router.post(
@@ -192,7 +213,10 @@ async def delete_vrf(
 )
 async def bulk_create_vrfs(
     body: list[CreateVRFRequest],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkCreateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(BulkCreateVRFsCommand(items=[CreateVRFCommand(**i.model_dump()) for i in body]))
+    await session.commit()
     return BulkCreateResponse(ids=ids, count=len(ids))

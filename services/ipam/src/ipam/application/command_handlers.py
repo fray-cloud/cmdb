@@ -138,8 +138,8 @@ class CreatePrefixHandler(CommandHandler[UUID]):
             role=command.role,
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = prefix.collect_uncommitted_events()
         await self._event_store.append(prefix.id, events, expected_version=0)
@@ -169,8 +169,8 @@ class UpdatePrefixHandler(CommandHandler[None]):
             role=command.role,
             tenant_id=command.tenant_id,
             vlan_id=command.vlan_id,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = prefix.collect_uncommitted_events()
@@ -260,8 +260,8 @@ class CreateIPAddressHandler(CommandHandler[UUID]):
             dns_name=command.dns_name,
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = ip.collect_uncommitted_events()
         await self._event_store.append(ip.id, events, expected_version=0)
@@ -289,8 +289,8 @@ class UpdateIPAddressHandler(CommandHandler[None]):
         ip.update(
             dns_name=command.dns_name,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = ip.collect_uncommitted_events()
@@ -367,12 +367,12 @@ class CreateVRFHandler(CommandHandler[UUID]):
         vrf = VRF.create(
             name=command.name,
             rd=command.rd,
-            import_targets=command.import_targets,
-            export_targets=command.export_targets,
+            import_targets=command.import_targets or [],
+            export_targets=command.export_targets or [],
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = vrf.collect_uncommitted_events()
         await self._event_store.append(vrf.id, events, expected_version=0)
@@ -402,8 +402,8 @@ class UpdateVRFHandler(CommandHandler[None]):
             import_targets=command.import_targets,
             export_targets=command.export_targets,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = vrf.collect_uncommitted_events()
@@ -465,8 +465,8 @@ class CreateVLANHandler(CommandHandler[UUID]):
             role=command.role,
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = vlan.collect_uncommitted_events()
         await self._event_store.append(vlan.id, events, expected_version=0)
@@ -495,8 +495,8 @@ class UpdateVLANHandler(CommandHandler[None]):
             name=command.name,
             role=command.role,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = vlan.collect_uncommitted_events()
@@ -583,8 +583,8 @@ class CreateIPRangeHandler(CommandHandler[UUID]):
             status=IPRangeStatus(command.status),
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = ip_range.collect_uncommitted_events()
         await self._event_store.append(ip_range.id, events, expected_version=0)
@@ -612,8 +612,8 @@ class UpdateIPRangeHandler(CommandHandler[None]):
         ip_range.update(
             description=command.description,
             tenant_id=command.tenant_id,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = ip_range.collect_uncommitted_events()
@@ -697,8 +697,8 @@ class CreateRIRHandler(CommandHandler[UUID]):
             name=command.name,
             is_private=command.is_private,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = rir.collect_uncommitted_events()
         await self._event_store.append(rir.id, events, expected_version=0)
@@ -726,8 +726,8 @@ class UpdateRIRHandler(CommandHandler[None]):
         rir.update(
             description=command.description,
             is_private=command.is_private,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = rir.collect_uncommitted_events()
@@ -786,8 +786,8 @@ class CreateASNHandler(CommandHandler[UUID]):
             rir_id=command.rir_id,
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = asn.collect_uncommitted_events()
         await self._event_store.append(asn.id, events, expected_version=0)
@@ -815,8 +815,8 @@ class UpdateASNHandler(CommandHandler[None]):
         asn.update(
             description=command.description,
             tenant_id=command.tenant_id,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = asn.collect_uncommitted_events()
@@ -877,8 +877,8 @@ class CreateFHRPGroupHandler(CommandHandler[UUID]):
             auth_key=command.auth_key,
             name=command.name,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = group.collect_uncommitted_events()
         await self._event_store.append(group.id, events, expected_version=0)
@@ -908,8 +908,8 @@ class UpdateFHRPGroupHandler(CommandHandler[None]):
             auth_type=command.auth_type,
             auth_key=command.auth_key,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = group.collect_uncommitted_events()
@@ -1744,8 +1744,8 @@ class CreateRouteTargetHandler(CommandHandler[UUID]):
             name=command.name,
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = rt.collect_uncommitted_events()
         await self._event_store.append(rt.id, events, expected_version=0)
@@ -1773,8 +1773,8 @@ class UpdateRouteTargetHandler(CommandHandler[None]):
         rt.update(
             description=command.description,
             tenant_id=command.tenant_id,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = rt.collect_uncommitted_events()
@@ -1831,8 +1831,8 @@ class CreateVLANGroupHandler(CommandHandler[UUID]):
             max_vid=command.max_vid,
             tenant_id=command.tenant_id,
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = group.collect_uncommitted_events()
         await self._event_store.append(group.id, events, expected_version=0)
@@ -1862,8 +1862,8 @@ class UpdateVLANGroupHandler(CommandHandler[None]):
             description=command.description,
             min_vid=command.min_vid,
             max_vid=command.max_vid,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = group.collect_uncommitted_events()
@@ -1920,11 +1920,11 @@ class CreateServiceHandler(CommandHandler[UUID]):
         svc = Service.create(
             name=command.name,
             protocol=ServiceProtocol(command.protocol),
-            ports=command.ports,
-            ip_addresses=command.ip_addresses,
+            ports=command.ports or [],
+            ip_addresses=command.ip_addresses or [],
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
         events = svc.collect_uncommitted_events()
         await self._event_store.append(svc.id, events, expected_version=0)
@@ -1952,11 +1952,11 @@ class UpdateServiceHandler(CommandHandler[None]):
         svc.update(
             name=command.name,
             protocol=command.protocol,
-            ports=command.ports,
-            ip_addresses=command.ip_addresses,
+            ports=command.ports or [],
+            ip_addresses=command.ip_addresses or [],
             description=command.description,
-            custom_fields=command.custom_fields,
-            tags=command.tags,
+            custom_fields=command.custom_fields or {},
+            tags=command.tags or [],
         )
 
         new_events = svc.collect_uncommitted_events()

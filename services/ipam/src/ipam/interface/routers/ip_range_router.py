@@ -50,8 +50,13 @@ from shared.cqrs.bus import CommandBus, QueryBus
 router = APIRouter(prefix="/ip-ranges", tags=["ip-ranges"])
 
 
-def _get_command_bus(request: Request) -> CommandBus:
-    session = request.app.state.database.session()
+def _get_session(request: Request):
+    return request.app.state.database.session()
+
+
+def _get_command_bus(request: Request, session=None) -> CommandBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresIPRangeReadModelRepository(session)
     event_store = request.app.state.event_store
     event_producer = request.app.state.event_producer
@@ -88,8 +93,9 @@ def _get_command_bus(request: Request) -> CommandBus:
     return bus
 
 
-def _get_query_bus(request: Request) -> QueryBus:
-    session = request.app.state.database.session()
+def _get_query_bus(request: Request, session=None) -> QueryBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresIPRangeReadModelRepository(session)
     ip_repo = PostgresIPAddressReadModelRepository(session)
 
@@ -107,10 +113,13 @@ def _get_query_bus(request: Request) -> QueryBus:
 )
 async def create_ip_range(
     body: CreateIPRangeRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> IPRangeResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     range_id = await command_bus.dispatch(CreateIPRangeCommand(**body.model_dump()))
+    await session.commit()
     result = await query_bus.dispatch(GetIPRangeQuery(range_id=range_id))
     return IPRangeResponse(**result.model_dump())
 
@@ -162,8 +171,10 @@ async def list_ip_ranges(
 @router.patch("/bulk", response_model=BulkUpdateResponse)
 async def bulk_update_ip_ranges(
     body: list[BulkUpdateIPRangeItemSchema],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkUpdateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
         BulkUpdateIPRangesCommand(
             items=[
@@ -171,15 +182,19 @@ async def bulk_update_ip_ranges(
             ]
         )
     )
+    await session.commit()
     return BulkUpdateResponse(updated=updated)
 
 
 @router.delete("/bulk", response_model=BulkDeleteResponse)
 async def bulk_delete_ip_ranges(
     body: BulkDeleteRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkDeleteResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteIPRangesCommand(ids=body.ids))
+    await session.commit()
     return BulkDeleteResponse(deleted=deleted)
 
 
@@ -196,10 +211,13 @@ async def get_ip_range(
 async def update_ip_range(
     range_id: UUID,
     body: UpdateIPRangeRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> IPRangeResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     await command_bus.dispatch(UpdateIPRangeCommand(range_id=range_id, **body.model_dump(exclude_unset=True)))
+    await session.commit()
     result = await query_bus.dispatch(GetIPRangeQuery(range_id=range_id))
     return IPRangeResponse(**result.model_dump())
 
@@ -208,10 +226,13 @@ async def update_ip_range(
 async def change_ip_range_status(
     range_id: UUID,
     body: ChangeStatusRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> IPRangeResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     await command_bus.dispatch(ChangeIPRangeStatusCommand(range_id=range_id, status=body.status))
+    await session.commit()
     result = await query_bus.dispatch(GetIPRangeQuery(range_id=range_id))
     return IPRangeResponse(**result.model_dump())
 
@@ -219,9 +240,12 @@ async def change_ip_range_status(
 @router.delete("/{range_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_ip_range(
     range_id: UUID,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> None:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteIPRangeCommand(range_id=range_id))
+    await session.commit()
 
 
 @router.post(
@@ -231,11 +255,14 @@ async def delete_ip_range(
 )
 async def bulk_create_ip_ranges(
     body: list[CreateIPRangeRequest],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkCreateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(
         BulkCreateIPRangesCommand(items=[CreateIPRangeCommand(**i.model_dump()) for i in body])
     )
+    await session.commit()
     return BulkCreateResponse(ids=ids, count=len(ids))
 
 

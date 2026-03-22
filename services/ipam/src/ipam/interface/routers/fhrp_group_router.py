@@ -44,8 +44,13 @@ from shared.cqrs.bus import CommandBus, QueryBus
 router = APIRouter(prefix="/fhrp-groups", tags=["fhrp-groups"])
 
 
-def _get_command_bus(request: Request) -> CommandBus:
-    session = request.app.state.database.session()
+def _get_session(request: Request):
+    return request.app.state.database.session()
+
+
+def _get_command_bus(request: Request, session=None) -> CommandBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresFHRPGroupReadModelRepository(session)
     event_store = request.app.state.event_store
     event_producer = request.app.state.event_producer
@@ -78,8 +83,9 @@ def _get_command_bus(request: Request) -> CommandBus:
     return bus
 
 
-def _get_query_bus(request: Request) -> QueryBus:
-    session = request.app.state.database.session()
+def _get_query_bus(request: Request, session=None) -> QueryBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresFHRPGroupReadModelRepository(session)
 
     bus = QueryBus()
@@ -95,10 +101,13 @@ def _get_query_bus(request: Request) -> QueryBus:
 )
 async def create_fhrp_group(
     body: CreateFHRPGroupRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> FHRPGroupResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     group_id = await command_bus.dispatch(CreateFHRPGroupCommand(**body.model_dump()))
+    await session.commit()
     result = await query_bus.dispatch(GetFHRPGroupQuery(fhrp_group_id=group_id))
     return FHRPGroupResponse(**result.model_dump())
 
@@ -144,8 +153,10 @@ async def list_fhrp_groups(
 @router.patch("/bulk", response_model=BulkUpdateResponse)
 async def bulk_update_fhrp_groups(
     body: list[BulkUpdateFHRPGroupItemSchema],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkUpdateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
         BulkUpdateFHRPGroupsCommand(
             items=[
@@ -154,15 +165,19 @@ async def bulk_update_fhrp_groups(
             ]
         )
     )
+    await session.commit()
     return BulkUpdateResponse(updated=updated)
 
 
 @router.delete("/bulk", response_model=BulkDeleteResponse)
 async def bulk_delete_fhrp_groups(
     body: BulkDeleteRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkDeleteResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteFHRPGroupsCommand(ids=body.ids))
+    await session.commit()
     return BulkDeleteResponse(deleted=deleted)
 
 
@@ -179,15 +194,18 @@ async def get_fhrp_group(
 async def update_fhrp_group(
     fhrp_group_id: UUID,
     body: UpdateFHRPGroupRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> FHRPGroupResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     await command_bus.dispatch(
         UpdateFHRPGroupCommand(
             fhrp_group_id=fhrp_group_id,
             **body.model_dump(exclude_unset=True),
         )
     )
+    await session.commit()
     result = await query_bus.dispatch(GetFHRPGroupQuery(fhrp_group_id=fhrp_group_id))
     return FHRPGroupResponse(**result.model_dump())
 
@@ -195,9 +213,12 @@ async def update_fhrp_group(
 @router.delete("/{fhrp_group_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_fhrp_group(
     fhrp_group_id: UUID,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> None:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteFHRPGroupCommand(fhrp_group_id=fhrp_group_id))
+    await session.commit()
 
 
 @router.post(
@@ -207,9 +228,12 @@ async def delete_fhrp_group(
 )
 async def bulk_create_fhrp_groups(
     body: list[CreateFHRPGroupRequest],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkCreateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(
         BulkCreateFHRPGroupsCommand(items=[CreateFHRPGroupCommand(**i.model_dump()) for i in body])
     )
+    await session.commit()
     return BulkCreateResponse(ids=ids, count=len(ids))

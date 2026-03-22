@@ -13,8 +13,8 @@ class CreatePrefixCommand(Command):
     role: str | None = None
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdatePrefixCommand(Command):
@@ -46,8 +46,8 @@ class CreateIPAddressCommand(Command):
     dns_name: str = ""
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateIPAddressCommand(Command):
@@ -73,12 +73,12 @@ class DeleteIPAddressCommand(Command):
 class CreateVRFCommand(Command):
     name: str
     rd: str | None = None
-    import_targets: list[UUID] = []
-    export_targets: list[UUID] = []
+    import_targets: list[UUID] | None = None
+    export_targets: list[UUID] | None = None
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateVRFCommand(Command):
@@ -106,8 +106,8 @@ class CreateVLANCommand(Command):
     role: str | None = None
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateVLANCommand(Command):
@@ -138,8 +138,8 @@ class CreateIPRangeCommand(Command):
     status: str = "active"
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateIPRangeCommand(Command):
@@ -166,8 +166,8 @@ class CreateRIRCommand(Command):
     name: str
     is_private: bool = False
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateRIRCommand(Command):
@@ -190,8 +190,8 @@ class CreateASNCommand(Command):
     rir_id: UUID | None = None
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateASNCommand(Command):
@@ -216,8 +216,8 @@ class CreateFHRPGroupCommand(Command):
     auth_key: str = ""
     name: str = ""
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateFHRPGroupCommand(Command):
@@ -411,8 +411,8 @@ class CreateRouteTargetCommand(Command):
     name: str
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateRouteTargetCommand(Command):
@@ -437,8 +437,8 @@ class CreateVLANGroupCommand(Command):
     max_vid: int = 4094
     tenant_id: UUID | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateVLANGroupCommand(Command):
@@ -461,11 +461,11 @@ class DeleteVLANGroupCommand(Command):
 class CreateServiceCommand(Command):
     name: str
     protocol: str = "tcp"
-    ports: list[int] = []
-    ip_addresses: list[UUID] = []
+    ports: list[int] | None = None
+    ip_addresses: list[UUID] | None = None
     description: str = ""
-    custom_fields: dict = {}
-    tags: list[UUID] = []
+    custom_fields: dict | None = None
+    tags: list[UUID] | None = None
 
 
 class UpdateServiceCommand(Command):

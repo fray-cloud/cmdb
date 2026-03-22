@@ -44,8 +44,13 @@ from shared.cqrs.bus import CommandBus, QueryBus
 router = APIRouter(prefix="/services", tags=["services"])
 
 
-def _get_command_bus(request: Request) -> CommandBus:
-    session = request.app.state.database.session()
+def _get_session(request: Request):
+    return request.app.state.database.session()
+
+
+def _get_command_bus(request: Request, session=None) -> CommandBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresServiceReadModelRepository(session)
     event_store = request.app.state.event_store
     event_producer = request.app.state.event_producer
@@ -69,8 +74,9 @@ def _get_command_bus(request: Request) -> CommandBus:
     return bus
 
 
-def _get_query_bus(request: Request) -> QueryBus:
-    session = request.app.state.database.session()
+def _get_query_bus(request: Request, session=None) -> QueryBus:
+    if session is None:
+        session = _get_session(request)
     read_model_repo = PostgresServiceReadModelRepository(session)
 
     bus = QueryBus()
@@ -86,10 +92,13 @@ def _get_query_bus(request: Request) -> QueryBus:
 )
 async def create_service(
     body: CreateServiceRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> ServiceResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     service_id = await command_bus.dispatch(CreateServiceCommand(**body.model_dump()))
+    await session.commit()
     result = await query_bus.dispatch(GetServiceQuery(service_id=service_id))
     return ServiceResponse(**result.model_dump())
 
@@ -135,8 +144,10 @@ async def list_services(
 @router.patch("/bulk", response_model=BulkUpdateResponse)
 async def bulk_update_services(
     body: list[BulkUpdateServiceItemSchema],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkUpdateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
         BulkUpdateServicesCommand(
             items=[
@@ -144,15 +155,19 @@ async def bulk_update_services(
             ]
         )
     )
+    await session.commit()
     return BulkUpdateResponse(updated=updated)
 
 
 @router.delete("/bulk", response_model=BulkDeleteResponse)
 async def bulk_delete_services(
     body: BulkDeleteRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkDeleteResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteServicesCommand(ids=body.ids))
+    await session.commit()
     return BulkDeleteResponse(deleted=deleted)
 
 
@@ -169,10 +184,13 @@ async def get_service(
 async def update_service(
     service_id: UUID,
     body: UpdateServiceRequest,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
-    query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
+    request: Request,
 ) -> ServiceResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
+    query_bus = _get_query_bus(request, session)
     await command_bus.dispatch(UpdateServiceCommand(service_id=service_id, **body.model_dump(exclude_unset=True)))
+    await session.commit()
     result = await query_bus.dispatch(GetServiceQuery(service_id=service_id))
     return ServiceResponse(**result.model_dump())
 
@@ -180,9 +198,12 @@ async def update_service(
 @router.delete("/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_service(
     service_id: UUID,
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> None:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteServiceCommand(service_id=service_id))
+    await session.commit()
 
 
 @router.post(
@@ -192,9 +213,12 @@ async def delete_service(
 )
 async def bulk_create_services(
     body: list[CreateServiceRequest],
-    command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
+    request: Request,
 ) -> BulkCreateResponse:
+    session = _get_session(request)
+    command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(
         BulkCreateServicesCommand(items=[CreateServiceCommand(**i.model_dump()) for i in body])
     )
+    await session.commit()
     return BulkCreateResponse(ids=ids, count=len(ids))
