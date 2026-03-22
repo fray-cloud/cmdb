@@ -54,6 +54,7 @@ from ipam.interface.graphql.context import get_graphql_context
 from ipam.interface.graphql.schema import schema
 from ipam.interface.routers.asn_router import router as asn_router
 from ipam.interface.routers.fhrp_group_router import router as fhrp_group_router
+from ipam.interface.routers.import_export_router import router as import_export_router
 from ipam.interface.routers.ip_address_router import router as ip_address_router
 from ipam.interface.routers.ip_range_router import router as ip_range_router
 from ipam.interface.routers.prefix_router import router as prefix_router
@@ -187,6 +188,7 @@ OPENAPI_TAGS = [
     {"name": "services", "description": "Network service (TCP/UDP/SCTP) management"},
     {"name": "saved-filters", "description": "User-specific saved filter presets"},
     {"name": "search", "description": "Global full-text search across IPAM entities"},
+    {"name": "import-export", "description": "CSV import, CSV/JSON/YAML export, Jinja2 templates"},
 ]
 
 
@@ -214,6 +216,7 @@ def create_app() -> FastAPI:
     app.include_router(service_router, prefix="/api/v1")
     app.include_router(saved_filter_router, prefix="/api/v1")
     app.include_router(search_router, prefix="/api/v1")
+    app.include_router(import_export_router, prefix="/api/v1")
     graphql_app = GraphQLRouter(schema, context_getter=get_graphql_context)
     app.include_router(graphql_app, prefix="/graphql")
     return app

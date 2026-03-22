@@ -631,3 +631,18 @@ class SearchResultResponse(BaseModel):
 class GlobalSearchResponse(BaseModel):
     results: list[SearchResultResponse]
     total: int
+
+
+# --- Import/Export ---
+
+
+class ImportRowErrorSchema(BaseModel):
+    row: int
+    field: str
+    error: str
+
+
+class ImportResponse(BaseModel):
+    imported: int
+    failed: int
+    errors: list[ImportRowErrorSchema]
