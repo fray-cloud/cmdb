@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Any, Self
 from uuid import UUID
 
-from ipam.domain.events import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.aggregate import AggregateRoot
+
+from ipam.domain.events import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
 
 
 class VLANGroup(AggregateRoot):

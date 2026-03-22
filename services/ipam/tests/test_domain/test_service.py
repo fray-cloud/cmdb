@@ -6,7 +6,6 @@ import pytest
 from ipam.domain.events import ServiceCreated, ServiceDeleted, ServiceUpdated
 from ipam.domain.service import Service
 from ipam.domain.value_objects import ServiceProtocol
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 

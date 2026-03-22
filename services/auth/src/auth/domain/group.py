@@ -2,7 +2,6 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import Field
-
 from shared.domain.entity import Entity
 from shared.event.domain_event import DomainEvent
 

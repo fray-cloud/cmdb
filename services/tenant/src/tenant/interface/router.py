@@ -1,10 +1,10 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from tenant.application.command_handlers import (
     CreateTenantHandler,
     DeleteTenantHandler,

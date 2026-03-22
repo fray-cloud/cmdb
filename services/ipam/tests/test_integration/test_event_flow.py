@@ -47,7 +47,6 @@ from ipam.domain.events import (
     VRFDeleted,
     VRFUpdated,
 )
-
 from shared.messaging.serialization import EventSerializer
 
 

@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 from ipam.domain.events import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
 from ipam.domain.vlan_group import VLANGroup
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 

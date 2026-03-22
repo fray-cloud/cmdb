@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from shared.api.pagination import OffsetParams
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from event.infrastructure.changelog_repository import ChangeLogRepository
@@ -16,7 +17,6 @@ from event.interface.schemas import (
     JournalEntryResponse,
     StoredEventResponse,
 )
-from shared.api.pagination import OffsetParams
 
 router = APIRouter(tags=["events"])
 

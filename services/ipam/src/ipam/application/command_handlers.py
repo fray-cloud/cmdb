@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
+from shared.cqrs.command import Command, CommandHandler
+from shared.domain.exceptions import ConflictError, EntityNotFoundError
+from shared.event.pg_store import PostgresEventStore
+from shared.messaging.producer import KafkaEventProducer
+
 from ipam.application.commands import (
     BulkCreateASNsCommand,
     BulkCreateFHRPGroupsCommand,
@@ -108,10 +113,6 @@ from ipam.domain.value_objects import (
 from ipam.domain.vlan import VLAN
 from ipam.domain.vlan_group import VLANGroup
 from ipam.domain.vrf import VRF
-from shared.cqrs.command import Command, CommandHandler
-from shared.domain.exceptions import ConflictError, EntityNotFoundError
-from shared.event.pg_store import PostgresEventStore
-from shared.messaging.producer import KafkaEventProducer
 
 # ---------------------------------------------------------------------------
 # Prefix

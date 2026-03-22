@@ -6,7 +6,6 @@ import pytest
 from ipam.domain.events import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
 from ipam.domain.route_target import RouteTarget
 from pydantic import ValidationError
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 

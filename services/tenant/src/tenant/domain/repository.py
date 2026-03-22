@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 from shared.domain.repository import Repository
+
 from tenant.domain.tenant import Tenant
 
 

@@ -7,7 +7,6 @@ from ipam.domain.events import VLANCreated, VLANDeleted, VLANStatusChanged, VLAN
 from ipam.domain.value_objects import VLANId, VLANStatus
 from ipam.domain.vlan import VLAN
 from pydantic import ValidationError
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

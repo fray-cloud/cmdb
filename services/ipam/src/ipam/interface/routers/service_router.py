@@ -4,6 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi import Query as QueryParam
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
 
 from ipam.application.command_handlers import (
     BulkCreateServicesHandler,
@@ -38,8 +40,6 @@ from ipam.interface.schemas import (
 from ipam.interface.schemas import (
     BulkUpdateServiceItem as BulkUpdateServiceItemSchema,
 )
-from shared.api.pagination import OffsetParams
-from shared.cqrs.bus import CommandBus, QueryBus
 
 router = APIRouter(prefix="/services", tags=["services"])
 

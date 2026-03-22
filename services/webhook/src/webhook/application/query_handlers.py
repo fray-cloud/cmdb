@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from shared.cqrs.query import QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
+
 from webhook.application.dto import WebhookDTO, WebhookLogDTO
 from webhook.application.queries import GetWebhookQuery, ListWebhookLogsQuery, ListWebhooksQuery
 from webhook.domain.repository import WebhookLogRepository, WebhookRepository

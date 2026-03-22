@@ -12,7 +12,6 @@ from ipam.domain.events import (
 from ipam.domain.prefix import Prefix
 from ipam.domain.value_objects import PrefixNetwork, PrefixStatus
 from pydantic import ValidationError
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
+from shared.cqrs.bus import CommandBus, QueryBus
 
 from ipam.application.command_handlers import (
     BulkCreateASNsHandler,
@@ -87,7 +88,6 @@ from ipam.infrastructure.read_model_repository import (
     PostgresVRFReadModelRepository,
 )
 from ipam.interface.schemas import ImportResponse, ImportRowErrorSchema
-from shared.cqrs.bus import CommandBus, QueryBus
 
 router = APIRouter(tags=["import-export"])
 

@@ -2,6 +2,15 @@ import hashlib
 import secrets
 from uuid import UUID
 
+from shared.cqrs.command import Command, CommandHandler
+from shared.domain.exceptions import (
+    AuthorizationError,
+    BusinessRuleViolationError,
+    ConflictError,
+    EntityNotFoundError,
+)
+from shared.messaging.producer import KafkaEventProducer
+
 from auth.application.dto import APITokenDTO, AuthTokenDTO
 from auth.domain.api_token import APIToken
 from auth.domain.permission import Permission
@@ -11,14 +20,6 @@ from auth.domain.user import User
 from auth.infrastructure.login_rate_limiter import LoginRateLimiter
 from auth.infrastructure.security import BcryptPasswordService, JWTService
 from auth.infrastructure.token_blacklist import RedisTokenBlacklist
-from shared.cqrs.command import Command, CommandHandler
-from shared.domain.exceptions import (
-    AuthorizationError,
-    BusinessRuleViolationError,
-    ConflictError,
-    EntityNotFoundError,
-)
-from shared.messaging.producer import KafkaEventProducer
 
 
 class RegisterUserHandler(CommandHandler[UUID]):

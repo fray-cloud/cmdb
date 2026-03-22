@@ -5,10 +5,10 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-
 from shared.api.errors import domain_exception_handler
 from shared.api.middleware import CorrelationIdMiddleware
 from shared.domain.exceptions import DomainError
+
 from webhook.infrastructure.config import Settings
 from webhook.infrastructure.database import Database
 from webhook.infrastructure.retry_manager import RetryManager

@@ -15,8 +15,8 @@ from auth.application.commands import (
 )
 from auth.domain.services import PermissionChecker
 from auth.infrastructure.security import BcryptPasswordService, JWTService
-
 from shared.domain.exceptions import AuthorizationError, ConflictError
+
 from tests.conftest import (
     FakeKafkaProducer,
     FakeLoginRateLimiter,

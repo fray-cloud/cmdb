@@ -1,6 +1,8 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.application.command_handlers import (
@@ -69,8 +71,6 @@ from auth.interface.schemas import (
     UserListResponse,
     UserResponse,
 )
-from shared.api.pagination import OffsetParams
-from shared.cqrs.bus import CommandBus, QueryBus
 
 # --- Helpers ---
 

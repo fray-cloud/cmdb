@@ -3,11 +3,11 @@ from enum import StrEnum
 from typing import Any
 
 from pydantic import Field
-
 from shared.domain.entity import Entity
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.domain.value_object import ValueObject
 from shared.event.domain_event import DomainEvent
+
 from tenant.domain.events import TenantCreated, TenantDeleted, TenantSuspended
 
 

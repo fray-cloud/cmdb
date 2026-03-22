@@ -1,3 +1,6 @@
+from shared.cqrs.query import Query, QueryHandler
+from shared.domain.exceptions import AuthorizationError, EntityNotFoundError
+
 from auth.application.dto import (
     APITokenDTO,
     PermissionCheckDTO,
@@ -13,8 +16,6 @@ from auth.domain.repository import (
 from auth.domain.services import PermissionChecker
 from auth.infrastructure.security import JWTService
 from auth.infrastructure.token_blacklist import RedisTokenBlacklist
-from shared.cqrs.query import Query, QueryHandler
-from shared.domain.exceptions import AuthorizationError, EntityNotFoundError
 
 
 class GetUserHandler(QueryHandler[UserDTO]):

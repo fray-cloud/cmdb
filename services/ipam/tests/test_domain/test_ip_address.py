@@ -12,7 +12,6 @@ from ipam.domain.events import (
 from ipam.domain.ip_address import IPAddress
 from ipam.domain.value_objects import IPAddressStatus, IPAddressValue
 from pydantic import ValidationError
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

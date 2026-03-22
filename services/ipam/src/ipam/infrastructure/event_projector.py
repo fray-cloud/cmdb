@@ -1,6 +1,8 @@
 import logging
 from uuid import UUID
 
+from shared.event.domain_event import DomainEvent
+from shared.messaging.consumer import KafkaEventConsumer
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
@@ -56,8 +58,6 @@ from ipam.infrastructure.models import (
     VLANReadModel,
     VRFReadModel,
 )
-from shared.event.domain_event import DomainEvent
-from shared.messaging.consumer import KafkaEventConsumer
 
 logger = logging.getLogger(__name__)
 

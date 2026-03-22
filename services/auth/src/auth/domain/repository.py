@@ -1,11 +1,12 @@
 from abc import abstractmethod
 from uuid import UUID
 
+from shared.domain.repository import Repository
+
 from auth.domain.api_token import APIToken
 from auth.domain.group import Group
 from auth.domain.role import Role
 from auth.domain.user import User
-from shared.domain.repository import Repository
 
 
 class UserRepository(Repository[User]):

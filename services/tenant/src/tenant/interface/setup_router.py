@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-
 from shared.cqrs.bus import CommandBus, QueryBus
+
 from tenant.application.command_handlers import CreateTenantHandler
 from tenant.application.commands import CreateTenantCommand
 from tenant.application.queries import GetTenantQuery, ListTenantsQuery

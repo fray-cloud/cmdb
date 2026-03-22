@@ -11,7 +11,6 @@ from ipam.domain.events import (
 )
 from ipam.domain.value_objects import ASNumber
 from pydantic import ValidationError
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

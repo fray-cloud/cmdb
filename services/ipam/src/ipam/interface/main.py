@@ -6,6 +6,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from shared.api.errors import domain_exception_handler
+from shared.api.middleware import CorrelationIdMiddleware, UserMiddleware
+from shared.domain.exceptions import DomainError
+from shared.event.pg_store import PostgresEventStore
+from shared.messaging.consumer import KafkaEventConsumer
+from shared.messaging.producer import KafkaEventProducer
+from shared.messaging.serialization import EventSerializer
 from strawberry.fastapi import GraphQLRouter
 
 from ipam.domain.events import (
@@ -67,13 +74,6 @@ from ipam.interface.routers.service_router import router as service_router
 from ipam.interface.routers.vlan_group_router import router as vlan_group_router
 from ipam.interface.routers.vlan_router import router as vlan_router
 from ipam.interface.routers.vrf_router import router as vrf_router
-from shared.api.errors import domain_exception_handler
-from shared.api.middleware import CorrelationIdMiddleware, UserMiddleware
-from shared.domain.exceptions import DomainError
-from shared.event.pg_store import PostgresEventStore
-from shared.messaging.consumer import KafkaEventConsumer
-from shared.messaging.producer import KafkaEventProducer
-from shared.messaging.serialization import EventSerializer
 
 logger = logging.getLogger(__name__)
 

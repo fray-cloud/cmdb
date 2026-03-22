@@ -3,6 +3,7 @@ from uuid import UUID
 from shared.cqrs.command import Command, CommandHandler
 from shared.domain.exceptions import ConflictError, EntityNotFoundError
 from shared.messaging.producer import KafkaEventProducer
+
 from tenant.domain.repository import TenantRepository
 from tenant.domain.tenant import Tenant, TenantSettings
 from tenant.infrastructure.db_provisioning import TenantDbProvisioner

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from shared.cqrs.command import CommandHandler
 from shared.domain.exceptions import EntityNotFoundError
+
 from webhook.application.commands import CreateWebhookCommand, DeleteWebhookCommand, UpdateWebhookCommand
 from webhook.domain.repository import WebhookRepository
 from webhook.domain.webhook import Webhook

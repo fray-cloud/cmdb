@@ -1,3 +1,4 @@
+from shared.cqrs.bus import QueryBus
 from starlette.requests import Request
 
 from ipam.application.queries import (
@@ -61,7 +62,6 @@ from ipam.infrastructure.read_model_repository import (
     PostgresVLANReadModelRepository,
     PostgresVRFReadModelRepository,
 )
-from shared.cqrs.bus import QueryBus
 
 
 async def get_graphql_context(request: Request) -> dict:

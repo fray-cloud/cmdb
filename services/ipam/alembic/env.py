@@ -4,10 +4,9 @@ from logging.config import fileConfig
 
 from alembic import context
 from ipam.infrastructure.models import IPAMBase
+from shared.event.models import EventStoreBase
 from sqlalchemy import MetaData, pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from shared.event.models import EventStoreBase
 
 config = context.config
 

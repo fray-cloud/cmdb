@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Any, Self
 from uuid import UUID
 
-from ipam.domain.events import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
-from ipam.domain.value_objects import PrefixNetwork, PrefixStatus
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.aggregate import AggregateRoot
+
+from ipam.domain.events import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
+from ipam.domain.value_objects import PrefixNetwork, PrefixStatus
 
 
 class Prefix(AggregateRoot):

@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import Any, Self
 from uuid import UUID
 
+from shared.domain.exceptions import BusinessRuleViolationError
+from shared.event.aggregate import AggregateRoot
+
 from ipam.domain.events import (
     IPAddressCreated,
     IPAddressDeleted,
@@ -10,8 +13,6 @@ from ipam.domain.events import (
     IPAddressUpdated,
 )
 from ipam.domain.value_objects import IPAddressStatus, IPAddressValue
-from shared.domain.exceptions import BusinessRuleViolationError
-from shared.event.aggregate import AggregateRoot
 
 
 class IPAddress(AggregateRoot):

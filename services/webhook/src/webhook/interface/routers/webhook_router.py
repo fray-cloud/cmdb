@@ -3,9 +3,9 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
-
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
+
 from webhook.application.command_handlers import CreateWebhookHandler, DeleteWebhookHandler, UpdateWebhookHandler
 from webhook.application.commands import CreateWebhookCommand, DeleteWebhookCommand, UpdateWebhookCommand
 from webhook.application.queries import GetWebhookQuery, ListWebhookLogsQuery, ListWebhooksQuery

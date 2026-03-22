@@ -5,6 +5,9 @@ from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
+from shared.api.filtering import FilterParam, apply_filters
+from shared.api.sorting import SortParam, apply_sorting
+from shared.domain.filters import filter_by_custom_field
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,9 +37,6 @@ from ipam.infrastructure.models import (
     VLANReadModel,
     VRFReadModel,
 )
-from shared.api.filtering import FilterParam, apply_filters
-from shared.api.sorting import SortParam, apply_sorting
-from shared.domain.filters import filter_by_custom_field
 
 # ---------------------------------------------------------------------------
 # Common helpers

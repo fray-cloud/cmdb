@@ -9,7 +9,6 @@ from ipam.domain.events import (
     RIRUpdated,
 )
 from ipam.domain.rir import RIR
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

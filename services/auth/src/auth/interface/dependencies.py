@@ -1,9 +1,9 @@
 from uuid import UUID
 
 from fastapi import Request
+from shared.domain.exceptions import AuthorizationError
 
 from auth.infrastructure.security import JWTService
-from shared.domain.exceptions import AuthorizationError
 
 
 async def get_current_user(request: Request) -> dict:

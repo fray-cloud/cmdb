@@ -2,7 +2,6 @@ import ipaddress
 from enum import StrEnum
 
 from pydantic import field_validator
-
 from shared.domain.value_object import ValueObject
 
 

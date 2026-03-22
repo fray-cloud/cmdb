@@ -11,7 +11,6 @@ from ipam.domain.events import (
 )
 from ipam.domain.ip_range import IPRange
 from ipam.domain.value_objects import IPAddressValue, IPRangeStatus
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

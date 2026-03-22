@@ -3,11 +3,11 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import Field
-
-from auth.domain.permission import Permission
 from shared.domain.entity import Entity
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.domain_event import DomainEvent
+
+from auth.domain.permission import Permission
 
 
 class Role(Entity):

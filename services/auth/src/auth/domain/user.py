@@ -4,11 +4,11 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import Field
-
-from auth.domain.events import RoleAssigned, RoleRemoved, UserCreated, UserLocked
 from shared.domain.entity import Entity
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.domain_event import DomainEvent
+
+from auth.domain.events import RoleAssigned, RoleRemoved, UserCreated, UserLocked
 
 
 class UserStatus(StrEnum):

@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi import Query as QueryParam
+from shared.cqrs.bus import QueryBus
 
 from ipam.application.queries import GlobalSearchQuery
 from ipam.application.query_handlers import GlobalSearchHandler
 from ipam.infrastructure.search_repository import PostgresGlobalSearchRepository
 from ipam.interface.schemas import GlobalSearchResponse, SearchResultResponse
-from shared.cqrs.bus import QueryBus
 
 router = APIRouter(prefix="/search", tags=["search"])
 

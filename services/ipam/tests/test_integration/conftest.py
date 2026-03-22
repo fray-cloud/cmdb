@@ -15,7 +15,6 @@ from ipam.application.command_handlers import (
 )
 from ipam.application.query_handlers import GetPrefixHandler, ListPrefixesHandler
 from ipam.application.read_model import PrefixReadModelRepository
-
 from shared.domain.exceptions import ConflictError
 from shared.event.domain_event import DomainEvent
 

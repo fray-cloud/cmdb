@@ -3,12 +3,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from shared.api.errors import domain_exception_handler
 from shared.api.middleware import CorrelationIdMiddleware
 from shared.domain.exceptions import DomainError
 from shared.messaging.producer import KafkaEventProducer
 from shared.messaging.serialization import EventSerializer
+
 from tenant.domain.events import TenantCreated, TenantDeleted, TenantSuspended
 from tenant.infrastructure.config import Settings
 from tenant.infrastructure.database import Database

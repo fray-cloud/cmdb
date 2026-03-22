@@ -4,6 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi import Query as QueryParam
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
 
 from ipam.application.command_handlers import (
     BulkCreateIPRangesHandler,
@@ -44,8 +46,6 @@ from ipam.interface.schemas import (
 from ipam.interface.schemas import (
     BulkUpdateIPRangeItem as BulkUpdateIPRangeItemSchema,
 )
-from shared.api.pagination import OffsetParams
-from shared.cqrs.bus import CommandBus, QueryBus
 
 router = APIRouter(prefix="/ip-ranges", tags=["ip-ranges"])
 

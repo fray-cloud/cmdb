@@ -7,7 +7,6 @@ from ipam.domain.events import VRFCreated, VRFDeleted, VRFUpdated
 from ipam.domain.value_objects import RouteDistinguisher
 from ipam.domain.vrf import VRF
 from pydantic import ValidationError
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

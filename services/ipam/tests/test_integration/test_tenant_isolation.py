@@ -16,12 +16,11 @@ from ipam.application.query_handlers import ListPrefixesHandler
 from ipam.domain.events import PrefixCreated
 from ipam.infrastructure.models import IPAMBase
 from ipam.infrastructure.read_model_repository import PostgresPrefixReadModelRepository
+from shared.event.models import EventStoreBase
+from shared.event.pg_store import PostgresEventStore
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from testcontainers.postgres import PostgresContainer
-
-from shared.event.models import EventStoreBase
-from shared.event.pg_store import PostgresEventStore
 
 from .conftest import FakeKafkaProducer
 

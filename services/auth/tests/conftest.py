@@ -10,7 +10,6 @@ from auth.infrastructure.config import Settings
 from auth.infrastructure.security import BcryptPasswordService, JWTService
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-
 from shared.event.domain_event import DomainEvent
 from shared.messaging.producer import KafkaEventProducer
 

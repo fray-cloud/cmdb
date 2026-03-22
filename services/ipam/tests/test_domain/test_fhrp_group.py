@@ -10,7 +10,6 @@ from ipam.domain.events import (
 )
 from ipam.domain.fhrp_group import FHRPGroup
 from ipam.domain.value_objects import FHRPAuthType, FHRPProtocol
-
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi import Query as QueryParam
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
 
 from ipam.application.command_handlers import (
     BulkCreateVLANGroupsHandler,
@@ -38,8 +40,6 @@ from ipam.interface.schemas import (
 from ipam.interface.schemas import (
     BulkUpdateVLANGroupItem as BulkUpdateVLANGroupItemSchema,
 )
-from shared.api.pagination import OffsetParams
-from shared.cqrs.bus import CommandBus, QueryBus
 
 router = APIRouter(prefix="/vlan-groups", tags=["vlan-groups"])
 

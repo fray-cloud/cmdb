@@ -11,11 +11,10 @@ from uuid import uuid4
 
 import pytest
 from ipam.domain.events import PrefixCreated
-from testcontainers.kafka import KafkaContainer
-
 from shared.messaging.consumer import KafkaEventConsumer
 from shared.messaging.producer import KafkaEventProducer
 from shared.messaging.serialization import EventSerializer
+from testcontainers.kafka import KafkaContainer
 
 # ---------------------------------------------------------------------------
 # Fixtures

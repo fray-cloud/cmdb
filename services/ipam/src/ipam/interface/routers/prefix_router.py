@@ -4,6 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi import Query as QueryParam
+from shared.api.pagination import OffsetParams
+from shared.cqrs.bus import CommandBus, QueryBus
 
 from ipam.application.command_handlers import (
     BulkCreatePrefixesHandler,
@@ -58,8 +60,6 @@ from ipam.interface.schemas import (
 from ipam.interface.schemas import (
     BulkUpdatePrefixItem as BulkUpdatePrefixSchema,
 )
-from shared.api.pagination import OffsetParams
-from shared.cqrs.bus import CommandBus, QueryBus
 
 router = APIRouter(prefix="/prefixes", tags=["prefixes"])
 

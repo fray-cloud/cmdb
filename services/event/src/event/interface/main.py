@@ -6,15 +6,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from shared.api.errors import domain_exception_handler
+from shared.api.middleware import CorrelationIdMiddleware, UserMiddleware
+from shared.domain.exceptions import DomainError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from event.infrastructure.config import Settings
 from event.infrastructure.database import Database
 from event.infrastructure.event_consumer import EventConsumerWorker
 from event.interface.router import router
-from shared.api.errors import domain_exception_handler
-from shared.api.middleware import CorrelationIdMiddleware, UserMiddleware
-from shared.domain.exceptions import DomainError
 
 logger = logging.getLogger(__name__)
 

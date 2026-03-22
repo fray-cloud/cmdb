@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
+from shared.cqrs.bus import CommandBus, QueryBus
 
 from ipam.application.command_handlers import (
     CreateSavedFilterHandler,
@@ -21,7 +22,6 @@ from ipam.interface.schemas import (
     SavedFilterResponse,
     UpdateSavedFilterRequest,
 )
-from shared.cqrs.bus import CommandBus, QueryBus
 
 router = APIRouter(prefix="/saved-filters", tags=["saved-filters"])
 

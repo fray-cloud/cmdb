@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Any, Self
 from uuid import UUID
 
-from ipam.domain.events import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
-from ipam.domain.value_objects import IPAddressValue, IPRangeStatus
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.aggregate import AggregateRoot
+
+from ipam.domain.events import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
+from ipam.domain.value_objects import IPAddressValue, IPRangeStatus
 
 
 class IPRange(AggregateRoot):

@@ -1,5 +1,6 @@
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
+
 from tenant.application.dto import TenantDTO
 from tenant.domain.repository import TenantRepository
 

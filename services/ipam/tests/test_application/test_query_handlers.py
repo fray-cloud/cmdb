@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from ipam.application.queries import BaseListQuery, ListPrefixesQuery
 from ipam.application.query_handlers import _build_common_filters
-
 from shared.api.filtering import FilterOperator
 
 
