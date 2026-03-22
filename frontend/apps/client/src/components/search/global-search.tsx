@@ -75,11 +75,16 @@ export function GlobalSearch() {
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
+    }
+  }, [open]);
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
       setQuery("");
       setDebouncedQuery("");
     }
-  }, [open]);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["global-search", debouncedQuery],
@@ -100,7 +105,7 @@ export function GlobalSearch() {
   const showNoResults = debouncedQuery.length >= 2 && !isLoading && !hasResults;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="sm:max-w-lg top-[20%] translate-y-0"
         showCloseButton={false}
