@@ -1,5 +1,8 @@
 FROM cmdb-base:dev
 COPY services/event/pyproject.toml ./services/event/pyproject.toml
+COPY services/event/alembic.ini ./services/event/alembic.ini
+COPY services/event/alembic ./services/event/alembic
+COPY services/event/src ./services/event/src
 RUN uv sync --frozen --package cmdb-event
 EXPOSE 8000
 CMD ["uv", "run", "--package", "cmdb-event", "uvicorn", "event.interface.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

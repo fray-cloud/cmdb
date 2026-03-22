@@ -208,9 +208,7 @@ services:
 
   # ── Init containers (migration) ──
   auth-init:
-    build:
-      context: .
-      dockerfile: services/auth/Dockerfile.dev
+    image: cmdb-auth:latest
     command: uv run --package cmdb-auth alembic upgrade head
     working_dir: /app/services/auth
     environment:
@@ -223,9 +221,7 @@ services:
       - cmdb-network
 
   ipam-init:
-    build:
-      context: .
-      dockerfile: services/ipam/Dockerfile.dev
+    image: cmdb-ipam:latest
     command: uv run --package cmdb-ipam alembic upgrade head
     working_dir: /app/services/ipam
     environment:
@@ -238,9 +234,7 @@ services:
       - cmdb-network
 
   event-init:
-    build:
-      context: .
-      dockerfile: services/event/Dockerfile.dev
+    image: cmdb-event:latest
     command: uv run --package cmdb-event alembic upgrade head
     working_dir: /app/services/event
     environment:
@@ -253,9 +247,7 @@ services:
       - cmdb-network
 
   tenant-init:
-    build:
-      context: .
-      dockerfile: services/tenant/Dockerfile.dev
+    image: cmdb-tenant:latest
     command: uv run --package cmdb-tenant alembic upgrade head
     working_dir: /app/services/tenant
     environment:

@@ -15,8 +15,13 @@ dev-build:
 	docker build --target dev -t cmdb-base:dev -f infrastructure/docker/Dockerfile.base .
 	docker compose -f docker-compose.dev.yml build
 
-dev-init:
-	docker compose -f docker-compose.dev.yml --profile init up --abort-on-container-exit
+dev-init: dev-build dev-up
+	@echo "Running database migrations..."
+	docker compose -f docker-compose.dev.yml run --rm auth-init
+	docker compose -f docker-compose.dev.yml run --rm ipam-init
+	docker compose -f docker-compose.dev.yml run --rm event-init
+	docker compose -f docker-compose.dev.yml run --rm tenant-init
+	@echo "All migrations completed."
 
 # Prod environment
 prod-up:
