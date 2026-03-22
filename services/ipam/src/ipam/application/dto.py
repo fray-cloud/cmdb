@@ -148,3 +148,27 @@ class ServiceDTO(BaseModel):
     tags: list[UUID]
     created_at: datetime
     updated_at: datetime
+
+
+class SavedFilterDTO(BaseModel):
+    id: UUID
+    user_id: UUID
+    name: str
+    entity_type: str
+    filter_config: dict
+    is_default: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class SearchResultDTO(BaseModel):
+    entity_type: str
+    entity_id: UUID
+    display_text: str
+    description: str
+    relevance: float
+
+
+class GlobalSearchResultDTO(BaseModel):
+    results: list[SearchResultDTO]
+    total: int

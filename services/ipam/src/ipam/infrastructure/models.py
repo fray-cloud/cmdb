@@ -1,8 +1,8 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Boolean, Computed, DateTime, Index, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID as SAUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -24,11 +24,21 @@ class PrefixReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(network, '') || ' ' || coalesce(description, '') || ' ' || coalesce(role, ''))",  # noqa: E501
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_prefixes_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class IPAddressReadModel(IPAMBase):
@@ -43,11 +53,21 @@ class IPAddressReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(address, '') || ' ' || coalesce(dns_name, '') || ' ' || coalesce(description, ''))",  # noqa: E501
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_ip_addresses_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class VRFReadModel(IPAMBase):
@@ -62,11 +82,21 @@ class VRFReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(rd, '') || ' ' || coalesce(description, ''))",
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_vrfs_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class VLANReadModel(IPAMBase):
@@ -82,11 +112,21 @@ class VLANReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(name, '') || ' ' || vid::text || ' ' || coalesce(description, ''))",
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_vlans_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class IPRangeReadModel(IPAMBase):
@@ -101,11 +141,21 @@ class IPRangeReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(start_address, '') || ' ' || coalesce(end_address, '') || ' ' || coalesce(description, ''))",  # noqa: E501
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_ip_ranges_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class RIRReadModel(IPAMBase):
@@ -117,11 +167,18 @@ class RIRReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(description, ''))", persisted=True),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_rirs_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class ASNReadModel(IPAMBase):
@@ -134,11 +191,18 @@ class ASNReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('simple', asn::text || ' ' || coalesce(description, ''))", persisted=True),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_asns_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class FHRPGroupReadModel(IPAMBase):
@@ -153,11 +217,21 @@ class FHRPGroupReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(protocol, '') || ' ' || coalesce(description, ''))",  # noqa: E501
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_fhrp_groups_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class RouteTargetReadModel(IPAMBase):
@@ -169,11 +243,18 @@ class RouteTargetReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed("to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(description, ''))", persisted=True),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_route_targets_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class VLANGroupReadModel(IPAMBase):
@@ -188,11 +269,21 @@ class VLANGroupReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(slug, '') || ' ' || coalesce(description, ''))",  # noqa: E501
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_vlan_groups_read_search", "search_vector", postgresql_using="gin"),)
 
 
 class ServiceReadModel(IPAMBase):
@@ -206,8 +297,35 @@ class ServiceReadModel(IPAMBase):
     description: Mapped[str] = mapped_column(Text, default="")
     custom_fields: Mapped[dict] = mapped_column(JSONB, default=dict)
     tags: Mapped[list] = mapped_column(JSONB, default=list)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(protocol, '') || ' ' || coalesce(description, ''))",  # noqa: E501
+            persisted=True,
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    __table_args__ = (Index("ix_services_read_search", "search_vector", postgresql_using="gin"),)
+
+
+class SavedFilterModel(IPAMBase):
+    __tablename__ = "saved_filters"
+
+    id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    entity_type: Mapped[str] = mapped_column(String(50))
+    filter_config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = (Index("ix_saved_filters_user_entity", "user_id", "entity_type"),)

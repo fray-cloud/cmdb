@@ -59,12 +59,14 @@ from ipam.interface.routers.ip_range_router import router as ip_range_router
 from ipam.interface.routers.prefix_router import router as prefix_router
 from ipam.interface.routers.rir_router import router as rir_router
 from ipam.interface.routers.route_target_router import router as route_target_router
+from ipam.interface.routers.saved_filter_router import router as saved_filter_router
+from ipam.interface.routers.search_router import router as search_router
 from ipam.interface.routers.service_router import router as service_router
 from ipam.interface.routers.vlan_group_router import router as vlan_group_router
 from ipam.interface.routers.vlan_router import router as vlan_router
 from ipam.interface.routers.vrf_router import router as vrf_router
 from shared.api.errors import domain_exception_handler
-from shared.api.middleware import CorrelationIdMiddleware
+from shared.api.middleware import CorrelationIdMiddleware, UserMiddleware
 from shared.domain.exceptions import DomainError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.consumer import KafkaEventConsumer
@@ -183,6 +185,8 @@ OPENAPI_TAGS = [
     {"name": "route-targets", "description": "BGP route targets for VRF import/export"},
     {"name": "vlan-groups", "description": "VLAN group management"},
     {"name": "services", "description": "Network service (TCP/UDP/SCTP) management"},
+    {"name": "saved-filters", "description": "User-specific saved filter presets"},
+    {"name": "search", "description": "Global full-text search across IPAM entities"},
 ]
 
 
@@ -194,6 +198,7 @@ def create_app() -> FastAPI:
         openapi_tags=OPENAPI_TAGS,
         lifespan=lifespan,
     )
+    app.add_middleware(UserMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_exception_handler(DomainError, domain_exception_handler)
     app.include_router(prefix_router, prefix="/api/v1")
@@ -207,6 +212,8 @@ def create_app() -> FastAPI:
     app.include_router(route_target_router, prefix="/api/v1")
     app.include_router(vlan_group_router, prefix="/api/v1")
     app.include_router(service_router, prefix="/api/v1")
+    app.include_router(saved_filter_router, prefix="/api/v1")
+    app.include_router(search_router, prefix="/api/v1")
     graphql_app = GraphQLRouter(schema, context_getter=get_graphql_context)
     app.include_router(graphql_app, prefix="/graphql")
     return app

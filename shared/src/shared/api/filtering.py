@@ -15,6 +15,7 @@ class FilterOperator(StrEnum):
     IN = "in"
     CONTAINS = "contains"
     STARTSWITH = "startswith"
+    ILIKE = "ilike"
 
 
 class FilterParam(BaseModel):
@@ -33,6 +34,7 @@ _OPERATOR_MAP = {
     FilterOperator.IN: lambda col, val: col.in_(val),
     FilterOperator.CONTAINS: lambda col, val: col.contains(val),
     FilterOperator.STARTSWITH: lambda col, val: col.startswith(val),
+    FilterOperator.ILIKE: lambda col, val: col.ilike(f"%{val}%"),
 }
 
 

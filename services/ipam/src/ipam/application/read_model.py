@@ -3,6 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from shared.api.filtering import FilterParam
+from shared.api.sorting import SortParam
 
 
 class ReadModelRepository(ABC):
@@ -19,6 +20,9 @@ class ReadModelRepository(ABC):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]: ...
 
     @abstractmethod
@@ -84,3 +88,34 @@ class VLANGroupReadModelRepository(ReadModelRepository):
 
 class ServiceReadModelRepository(ReadModelRepository):
     pass
+
+
+class SavedFilterRepository(ABC):
+    @abstractmethod
+    async def find_by_id(self, filter_id: UUID) -> dict | None: ...
+
+    @abstractmethod
+    async def find_by_user(self, user_id: UUID, entity_type: str | None = None) -> list[dict]: ...
+
+    @abstractmethod
+    async def create(self, data: dict) -> UUID: ...
+
+    @abstractmethod
+    async def update(self, filter_id: UUID, data: dict) -> None: ...
+
+    @abstractmethod
+    async def delete(self, filter_id: UUID) -> None: ...
+
+    @abstractmethod
+    async def clear_default(self, user_id: UUID, entity_type: str) -> None: ...
+
+
+class GlobalSearchRepository(ABC):
+    @abstractmethod
+    async def search(
+        self,
+        query: str,
+        entity_types: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[dict], int]: ...

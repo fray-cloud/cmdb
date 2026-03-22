@@ -4,21 +4,27 @@ from ipam.application.dto import (
     VLANDTO,
     VRFDTO,
     FHRPGroupDTO,
+    GlobalSearchResultDTO,
     IPAddressDTO,
     IPRangeDTO,
     PrefixDTO,
     RouteTargetDTO,
+    SavedFilterDTO,
+    SearchResultDTO,
     ServiceDTO,
     VLANGroupDTO,
 )
+from ipam.application.queries import BaseListQuery
 from ipam.application.read_model import (
     ASNReadModelRepository,
     FHRPGroupReadModelRepository,
+    GlobalSearchRepository,
     IPAddressReadModelRepository,
     IPRangeReadModelRepository,
     PrefixReadModelRepository,
     RIRReadModelRepository,
     RouteTargetReadModelRepository,
+    SavedFilterRepository,
     ServiceReadModelRepository,
     VLANGroupReadModelRepository,
     VLANReadModelRepository,
@@ -34,8 +40,48 @@ from ipam.domain.services import (
     PrefixUtilizationService,
 )
 from shared.api.filtering import FilterOperator, FilterParam
+from shared.api.sorting import SortParam
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
+
+# ---------------------------------------------------------------------------
+# Common filter builder
+# ---------------------------------------------------------------------------
+
+
+def _build_common_filters(
+    query: BaseListQuery,
+) -> tuple[list[FilterParam], list[SortParam] | None, list[str] | None, dict[str, str] | None]:
+    """Build common filters, sort params, tag_slugs, and custom_field_filters from BaseListQuery."""
+    filters: list[FilterParam] = []
+
+    if query.description_contains is not None:
+        filters.append(
+            FilterParam(field="description", operator=FilterOperator.ILIKE, value=query.description_contains)
+        )
+    if query.created_after is not None:
+        filters.append(
+            FilterParam(field="created_at", operator=FilterOperator.GTE, value=query.created_after.isoformat())
+        )
+    if query.created_before is not None:
+        filters.append(
+            FilterParam(field="created_at", operator=FilterOperator.LTE, value=query.created_before.isoformat())
+        )
+    if query.updated_after is not None:
+        filters.append(
+            FilterParam(field="updated_at", operator=FilterOperator.GTE, value=query.updated_after.isoformat())
+        )
+    if query.updated_before is not None:
+        filters.append(
+            FilterParam(field="updated_at", operator=FilterOperator.LTE, value=query.updated_before.isoformat())
+        )
+
+    sort_params: list[SortParam] | None = None
+    if query.sort_by is not None:
+        sort_params = [SortParam(field=query.sort_by, direction=query.sort_dir)]
+
+    return filters, sort_params, query.tag_slugs, query.custom_field_filters
+
 
 # ---------------------------------------------------------------------------
 # Prefix
@@ -58,14 +104,23 @@ class ListPrefixesHandler(QueryHandler[tuple[list[PrefixDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[PrefixDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.vrf_id is not None:
             filters.append(FilterParam(field="vrf_id", operator=FilterOperator.EQ, value=str(query.vrf_id)))
         if query.status is not None:
             filters.append(FilterParam(field="status", operator=FilterOperator.EQ, value=query.status))
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        if query.role is not None:
+            filters.append(FilterParam(field="role", operator=FilterOperator.EQ, value=query.role))
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [PrefixDTO(**item) for item in items], total
 
 
@@ -172,14 +227,21 @@ class ListIPAddressesHandler(QueryHandler[tuple[list[IPAddressDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[IPAddressDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.vrf_id is not None:
             filters.append(FilterParam(field="vrf_id", operator=FilterOperator.EQ, value=str(query.vrf_id)))
         if query.status is not None:
             filters.append(FilterParam(field="status", operator=FilterOperator.EQ, value=query.status))
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [IPAddressDTO(**item) for item in items], total
 
 
@@ -204,10 +266,17 @@ class ListVRFsHandler(QueryHandler[tuple[list[VRFDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[VRFDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [VRFDTO(**item) for item in items], total
 
 
@@ -232,14 +301,21 @@ class ListVLANsHandler(QueryHandler[tuple[list[VLANDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[VLANDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.group_id is not None:
             filters.append(FilterParam(field="group_id", operator=FilterOperator.EQ, value=str(query.group_id)))
         if query.status is not None:
             filters.append(FilterParam(field="status", operator=FilterOperator.EQ, value=query.status))
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [VLANDTO(**item) for item in items], total
 
 
@@ -264,14 +340,21 @@ class ListIPRangesHandler(QueryHandler[tuple[list[IPRangeDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[IPRangeDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.vrf_id is not None:
             filters.append(FilterParam(field="vrf_id", operator=FilterOperator.EQ, value=str(query.vrf_id)))
         if query.status is not None:
             filters.append(FilterParam(field="status", operator=FilterOperator.EQ, value=query.status))
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [IPRangeDTO(**item) for item in items], total
 
 
@@ -316,7 +399,15 @@ class ListRIRsHandler(QueryHandler[tuple[list[RIRDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[RIRDTO], int]:
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit)
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [RIRDTO(**item) for item in items], total
 
 
@@ -341,12 +432,19 @@ class ListASNsHandler(QueryHandler[tuple[list[ASNDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[ASNDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.rir_id is not None:
             filters.append(FilterParam(field="rir_id", operator=FilterOperator.EQ, value=str(query.rir_id)))
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [ASNDTO(**item) for item in items], total
 
 
@@ -371,7 +469,15 @@ class ListFHRPGroupsHandler(QueryHandler[tuple[list[FHRPGroupDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[FHRPGroupDTO], int]:
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit)
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [FHRPGroupDTO(**item) for item in items], total
 
 
@@ -396,10 +502,17 @@ class ListRouteTargetsHandler(QueryHandler[tuple[list[RouteTargetDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[RouteTargetDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [RouteTargetDTO(**item) for item in items], total
 
 
@@ -424,10 +537,17 @@ class ListVLANGroupsHandler(QueryHandler[tuple[list[VLANGroupDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[VLANGroupDTO], int]:
-        filters: list[FilterParam] = []
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
         if query.tenant_id is not None:
             filters.append(FilterParam(field="tenant_id", operator=FilterOperator.EQ, value=str(query.tenant_id)))
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit, filters=filters or None)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [VLANGroupDTO(**item) for item in items], total
 
 
@@ -452,8 +572,58 @@ class ListServicesHandler(QueryHandler[tuple[list[ServiceDTO], int]]):
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[ServiceDTO], int]:
-        items, total = await self._repo.find_all(offset=query.offset, limit=query.limit)
+        filters, sort_params, tag_slugs, custom_field_filters = _build_common_filters(query)
+        items, total = await self._repo.find_all(
+            offset=query.offset,
+            limit=query.limit,
+            filters=filters or None,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
         return [ServiceDTO(**item) for item in items], total
+
+
+# ---------------------------------------------------------------------------
+# Saved Filter
+# ---------------------------------------------------------------------------
+
+
+class GetSavedFilterHandler(QueryHandler[SavedFilterDTO]):
+    def __init__(self, repo: SavedFilterRepository) -> None:
+        self._repo = repo
+
+    async def handle(self, query: Query) -> SavedFilterDTO:
+        data = await self._repo.find_by_id(query.filter_id)
+        if data is None:
+            raise EntityNotFoundError(f"SavedFilter {query.filter_id} not found")
+        return SavedFilterDTO(**data)
+
+
+class ListSavedFiltersHandler(QueryHandler[list[SavedFilterDTO]]):
+    def __init__(self, repo: SavedFilterRepository) -> None:
+        self._repo = repo
+
+    async def handle(self, query: Query) -> list[SavedFilterDTO]:
+        items = await self._repo.find_by_user(query.user_id, query.entity_type)
+        return [SavedFilterDTO(**item) for item in items]
+
+
+# ---------------------------------------------------------------------------
+# Global Search
+# ---------------------------------------------------------------------------
+
+
+class GlobalSearchHandler(QueryHandler[GlobalSearchResultDTO]):
+    def __init__(self, search_repo: GlobalSearchRepository) -> None:
+        self._repo = search_repo
+
+    async def handle(self, query: Query) -> GlobalSearchResultDTO:
+        results, total = await self._repo.search(query.q, query.entity_types, query.offset, query.limit)
+        return GlobalSearchResultDTO(
+            results=[SearchResultDTO(**r) for r in results],
+            total=total,
+        )
 
 
 # ---------------------------------------------------------------------------

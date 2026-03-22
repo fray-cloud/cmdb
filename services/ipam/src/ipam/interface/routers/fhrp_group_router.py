@@ -1,6 +1,9 @@
+import json
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
+from fastapi import Query as QueryParam
 
 from ipam.application.command_handlers import (
     BulkCreateFHRPGroupsHandler,
@@ -103,9 +106,33 @@ async def create_fhrp_group(
 @router.get("", response_model=FHRPGroupListResponse)
 async def list_fhrp_groups(
     params: OffsetParams = Depends(),  # noqa: B008
+    description_contains: str | None = None,
+    tag_slugs: list[str] | None = QueryParam(None),  # noqa: B008
+    custom_fields: str | None = None,
+    created_after: datetime | None = None,
+    created_before: datetime | None = None,
+    updated_after: datetime | None = None,
+    updated_before: datetime | None = None,
+    sort_by: str | None = None,
+    sort_dir: str = "asc",
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> FHRPGroupListResponse:
-    items, total = await query_bus.dispatch(ListFHRPGroupsQuery(offset=params.offset, limit=params.limit))
+    custom_field_filters = json.loads(custom_fields) if custom_fields else None
+    items, total = await query_bus.dispatch(
+        ListFHRPGroupsQuery(
+            offset=params.offset,
+            limit=params.limit,
+            description_contains=description_contains,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+            created_after=created_after,
+            created_before=created_before,
+            updated_after=updated_after,
+            updated_before=updated_before,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+        )
+    )
     return FHRPGroupListResponse(
         items=[FHRPGroupResponse(**i.model_dump()) for i in items],
         total=total,

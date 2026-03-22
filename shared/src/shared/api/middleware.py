@@ -24,6 +24,14 @@ class TenantMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class UserMiddleware(BaseHTTPMiddleware):
+    HEADER = "X-User-ID"
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        request.state.user_id = request.headers.get(self.HEADER)
+        return await call_next(request)
+
+
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
     HEADER = "X-Correlation-ID"
 

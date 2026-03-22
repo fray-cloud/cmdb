@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ipam.application.read_model import (
@@ -35,6 +35,63 @@ from ipam.infrastructure.models import (
     VRFReadModel,
 )
 from shared.api.filtering import FilterParam, apply_filters
+from shared.api.sorting import SortParam, apply_sorting
+from shared.domain.filters import filter_by_custom_field
+
+# ---------------------------------------------------------------------------
+# Common helpers
+# ---------------------------------------------------------------------------
+
+
+def _apply_advanced_filters(
+    stmt: Select,  # type: ignore[type-arg]
+    model: Any,
+    *,
+    filters: list[FilterParam] | None = None,
+    sort_params: list[SortParam] | None = None,
+    tag_slugs: list[str] | None = None,
+    custom_field_filters: dict[str, str] | None = None,
+) -> Select:  # type: ignore[type-arg]
+    """Apply standard filters, sorting, tag slug filtering, and custom field filtering."""
+    if filters:
+        stmt = apply_filters(stmt, model, filters)
+    if tag_slugs:
+        tag_uuids = [UUID(s) if len(s) == 36 else s for s in tag_slugs]
+        for tag_val in tag_uuids:
+            stmt = stmt.where(model.tags.contains([str(tag_val)]))
+    if custom_field_filters:
+        for field_name, value in custom_field_filters.items():
+            stmt = filter_by_custom_field(stmt, model.custom_fields, field_name, value)
+    if sort_params:
+        stmt = apply_sorting(stmt, model, sort_params)
+    return stmt
+
+
+def _find_all_common(
+    stmt: Select,  # type: ignore[type-arg]
+    model: Any,
+    *,
+    offset: int,
+    limit: int,
+    filters: list[FilterParam] | None,
+    sort_params: list[SortParam] | None,
+    tag_slugs: list[str] | None,
+    custom_field_filters: dict[str, str] | None,
+    default_order: Any,
+) -> Select:  # type: ignore[type-arg]
+    """Build a paginated, filtered, sorted query."""
+    stmt = _apply_advanced_filters(
+        stmt,
+        model,
+        filters=filters,
+        sort_params=sort_params,
+        tag_slugs=tag_slugs,
+        custom_field_filters=custom_field_filters,
+    )
+    if not sort_params:
+        stmt = stmt.order_by(default_order)
+    return stmt.offset(offset).limit(limit)
+
 
 # ---------------------------------------------------------------------------
 # Prefix
@@ -74,13 +131,24 @@ class PostgresPrefixReadModelRepository(PrefixReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(PrefixReadModel).where(PrefixReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, PrefixReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(PrefixReadModel).where(PrefixReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            PrefixReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(PrefixReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(PrefixReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -177,13 +245,24 @@ class PostgresIPAddressReadModelRepository(IPAddressReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(IPAddressReadModel).where(IPAddressReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, IPAddressReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(IPAddressReadModel).where(IPAddressReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            IPAddressReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(IPAddressReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(IPAddressReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -300,13 +379,24 @@ class PostgresVRFReadModelRepository(VRFReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(VRFReadModel).where(VRFReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, VRFReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(VRFReadModel).where(VRFReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            VRFReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(VRFReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(VRFReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -380,13 +470,24 @@ class PostgresVLANReadModelRepository(VLANReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(VLANReadModel).where(VLANReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, VLANReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(VLANReadModel).where(VLANReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            VLANReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(VLANReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(VLANReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -464,13 +565,24 @@ class PostgresIPRangeReadModelRepository(IPRangeReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(IPRangeReadModel).where(IPRangeReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, IPRangeReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(IPRangeReadModel).where(IPRangeReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            IPRangeReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(IPRangeReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(IPRangeReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -531,13 +643,24 @@ class PostgresRIRReadModelRepository(RIRReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(RIRReadModel).where(RIRReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, RIRReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(RIRReadModel).where(RIRReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            RIRReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(RIRReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(RIRReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -605,13 +728,24 @@ class PostgresASNReadModelRepository(ASNReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(ASNReadModel).where(ASNReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, ASNReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(ASNReadModel).where(ASNReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            ASNReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(ASNReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(ASNReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -682,13 +816,24 @@ class PostgresFHRPGroupReadModelRepository(FHRPGroupReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(FHRPGroupReadModel).where(FHRPGroupReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, FHRPGroupReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(FHRPGroupReadModel).where(FHRPGroupReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            FHRPGroupReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(FHRPGroupReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(FHRPGroupReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -749,13 +894,24 @@ class PostgresRouteTargetReadModelRepository(RouteTargetReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(RouteTargetReadModel).where(RouteTargetReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, RouteTargetReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(RouteTargetReadModel).where(RouteTargetReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            RouteTargetReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(RouteTargetReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(RouteTargetReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -825,13 +981,24 @@ class PostgresVLANGroupReadModelRepository(VLANGroupReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(VLANGroupReadModel).where(VLANGroupReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, VLANGroupReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(VLANGroupReadModel).where(VLANGroupReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            VLANGroupReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(VLANGroupReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(VLANGroupReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 
@@ -903,13 +1070,24 @@ class PostgresServiceReadModelRepository(ServiceReadModelRepository):
         offset: int = 0,
         limit: int = 50,
         filters: list[FilterParam] | None = None,
+        sort_params: list[SortParam] | None = None,
+        tag_slugs: list[str] | None = None,
+        custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
-        stmt = select(ServiceReadModel).where(ServiceReadModel.is_deleted == sa.false())
-        if filters:
-            stmt = apply_filters(stmt, ServiceReadModel, filters)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        base = select(ServiceReadModel).where(ServiceReadModel.is_deleted == sa.false())
+        filtered = _apply_advanced_filters(
+            base,
+            ServiceReadModel,
+            filters=filters,
+            sort_params=sort_params,
+            tag_slugs=tag_slugs,
+            custom_field_filters=custom_field_filters,
+        )
+        count_stmt = select(func.count()).select_from(filtered.subquery())
         total = (await self._session.execute(count_stmt)).scalar_one()
-        stmt = stmt.offset(offset).limit(limit).order_by(ServiceReadModel.created_at.desc())
+        stmt = filtered.offset(offset).limit(limit)
+        if not sort_params:
+            stmt = stmt.order_by(ServiceReadModel.created_at.desc())
         result = await self._session.execute(stmt)
         return [self._to_dict(r) for r in result.scalars().all()], total
 

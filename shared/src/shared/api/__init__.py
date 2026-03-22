@@ -1,6 +1,6 @@
 from shared.api.errors import ProblemDetail, domain_exception_handler
 from shared.api.filtering import FilterOperator, FilterParam, apply_filters
-from shared.api.middleware import CorrelationIdMiddleware, TenantMiddleware
+from shared.api.middleware import CorrelationIdMiddleware, TenantMiddleware, UserMiddleware
 from shared.api.openapi import customize_openapi
 from shared.api.pagination import (
     CursorPage,
@@ -23,6 +23,7 @@ __all__ = [
     "ProblemDetail",
     "SortParam",
     "TenantMiddleware",
+    "UserMiddleware",
     "apply_filters",
     "apply_sorting",
     "customize_openapi",
