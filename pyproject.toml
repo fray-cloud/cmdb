@@ -8,7 +8,15 @@ requires-python = ">=3.13"
 members = ["services/*", "shared"]
 
 [dependency-groups]
-dev = ["ruff", "pytest", "pytest-asyncio", "pre-commit", "pytest-httpx", "fakeredis"]
+dev = [
+    "ruff",
+    "pytest",
+    "pytest-asyncio",
+    "pre-commit",
+    "pytest-httpx",
+    "fakeredis",
+    "testcontainers[postgresql,kafka,redis]",
+]
 
 [tool.ruff.lint]
 ignore = ["N802"]

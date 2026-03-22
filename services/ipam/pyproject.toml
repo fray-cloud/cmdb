@@ -26,3 +26,5 @@ cmdb-shared = { workspace = true }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+asyncio_mode = "auto"
+markers = ["integration: requires Docker infrastructure (PostgreSQL, Kafka, Redis)"]
