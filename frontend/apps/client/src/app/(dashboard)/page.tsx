@@ -109,12 +109,9 @@ export default function DashboardPage() {
 }
 
 function RecentChanges() {
-  // Use a well-known aggregate ID pattern or fetch recent changes globally
-  // For now, fetch recent changelog entries using a generic endpoint
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard-recent-changes"],
-    queryFn: () => changelogApi.getByObject("_recent", { limit: 10, offset: 0 }),
-    // This endpoint may not exist yet; gracefully handle errors
+    queryFn: () => changelogApi.list({ limit: 10, offset: 0 }),
     retry: false,
   });
 

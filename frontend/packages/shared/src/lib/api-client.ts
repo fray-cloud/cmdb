@@ -55,6 +55,8 @@ export const searchApi = {
 };
 
 export const changelogApi = {
+  list: (params: Record<string, unknown> = {}) =>
+    api.get<PaginatedResponse<ChangeLogEntry>>(`/api/v1/event/changelog${buildQuery(params)}`),
   getByObject: (aggregateId: string, params: Record<string, unknown> = {}) =>
     api.get<PaginatedResponse<ChangeLogEntry>>(`/api/v1/event/changelog/${aggregateId}${buildQuery(params)}`),
 };
