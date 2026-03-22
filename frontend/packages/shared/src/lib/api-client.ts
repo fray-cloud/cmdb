@@ -56,13 +56,13 @@ export const searchApi = {
 
 export const changelogApi = {
   getByObject: (aggregateId: string, params: Record<string, unknown> = {}) =>
-    api.get<PaginatedResponse<ChangeLogEntry>>(`/changelog/${aggregateId}${buildQuery(params)}`),
+    api.get<PaginatedResponse<ChangeLogEntry>>(`/api/v1/event/changelog/${aggregateId}${buildQuery(params)}`),
 };
 
 export const journalApi = {
   list: (params: Record<string, unknown> = {}) =>
-    api.get<PaginatedResponse<JournalEntry>>(`/journal-entries${buildQuery(params)}`),
+    api.get<PaginatedResponse<JournalEntry>>(`/api/v1/event/journal-entries${buildQuery(params)}`),
   create: (data: { object_type: string; object_id: string; entry_type: string; comment: string }) =>
-    api.post<JournalEntry>("/journal-entries", data),
-  delete: (id: string) => api.delete<void>(`/journal-entries/${id}`),
+    api.post<JournalEntry>("/api/v1/event/journal-entries", data),
+  delete: (id: string) => api.delete<void>(`/api/v1/event/journal-entries/${id}`),
 };

@@ -50,8 +50,8 @@ export default function SetupPage() {
     }
     setLoading(true);
     try {
-      const authUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8002";
-      const res = await fetch(`${authUrl}/auth/register`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost";
+      const res = await fetch(`${apiUrl}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, username, password, tenant_id: tenantId }),

@@ -1,5 +1,5 @@
 import type { LoginRequest, SignupRequest, TokenResponse, User } from "../types/auth";
-import { authApi } from "./api";
+import { api } from "./api";
 
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -11,17 +11,15 @@ export function isAuthenticated(): boolean {
 }
 
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
-  const tenantId = credentials.tenant_id || localStorage.getItem("tenant_id");
-  const payload = { ...credentials, tenant_id: tenantId };
-  const data = await authApi.post<TokenResponse>("/auth/login", payload);
+  const data = await api.post<TokenResponse>("/api/v1/auth/login", credentials);
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("refresh_token", data.refresh_token);
-  if (tenantId) localStorage.setItem("tenant_id", tenantId);
+  if (credentials.tenant_id) localStorage.setItem("tenant_id", credentials.tenant_id);
   return data;
 }
 
 export async function signup(data: SignupRequest): Promise<User> {
-  return authApi.post<User>("/auth/register", data);
+  return api.post<User>("/api/v1/auth/register", data);
 }
 
 export function logout(): void {

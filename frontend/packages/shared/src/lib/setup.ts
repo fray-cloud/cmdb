@@ -1,4 +1,4 @@
-const TENANT_API_URL = process.env.NEXT_PUBLIC_TENANT_API_URL || "http://localhost:8003";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost";
 
 export interface SetupStatus {
   initialized: boolean;
@@ -20,13 +20,13 @@ export interface TenantResponse {
 }
 
 export async function getSetupStatus(): Promise<SetupStatus> {
-  const res = await fetch(`${TENANT_API_URL}/setup/status`);
+  const res = await fetch(`${API_BASE_URL}/api/v1/setup/status`);
   if (!res.ok) throw new Error("Failed to check setup status");
   return res.json();
 }
 
 export async function setupCreateTenant(data: CreateTenantRequest): Promise<TenantResponse> {
-  const res = await fetch(`${TENANT_API_URL}/setup/create-tenant`, {
+  const res = await fetch(`${API_BASE_URL}/api/v1/setup/create-tenant`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
