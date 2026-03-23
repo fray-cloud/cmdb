@@ -3,13 +3,13 @@
 from uuid import uuid4
 
 import pytest
-from ipam.domain.asn import ASN
-from ipam.domain.events import (
+from ipam.asn.domain.asn import ASN
+from ipam.asn.domain.events import (
     ASNCreated,
     ASNDeleted,
     ASNUpdated,
 )
-from ipam.domain.value_objects import ASNumber
+from ipam.asn.domain.value_objects import ASNumber
 from pydantic import ValidationError
 from shared.domain.exceptions import BusinessRuleViolationError
 

@@ -3,8 +3,9 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from ipam.application.queries import BaseListQuery, ListPrefixesQuery
-from ipam.application.query_handlers import _build_common_filters
+from ipam.prefix.query.queries import ListPrefixesQuery
+from ipam.shared.query_utils import BaseListQuery
+from ipam.shared.query_utils import build_common_filters as _build_common_filters
 from shared.api.filtering import FilterOperator
 
 

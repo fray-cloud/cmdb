@@ -8,21 +8,21 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from ipam.application.command_handlers import (
-    BulkCreatePrefixesHandler,
-    CreatePrefixHandler,
-    DeletePrefixHandler,
-    UpdatePrefixHandler,
-)
-from ipam.application.commands import (
+from ipam.prefix.command.commands import (
     BulkCreatePrefixesCommand,
     CreatePrefixCommand,
     DeletePrefixCommand,
     UpdatePrefixCommand,
 )
-from ipam.application.queries import GetPrefixQuery, ListPrefixesQuery
-from ipam.application.query_handlers import GetPrefixHandler, ListPrefixesHandler
-from ipam.domain.events import PrefixCreated, PrefixDeleted, PrefixUpdated
+from ipam.prefix.command.handlers import (
+    BulkCreatePrefixesHandler,
+    CreatePrefixHandler,
+    DeletePrefixHandler,
+    UpdatePrefixHandler,
+)
+from ipam.prefix.domain.events import PrefixCreated, PrefixDeleted, PrefixUpdated
+from ipam.prefix.query.handlers import GetPrefixHandler, ListPrefixesHandler
+from ipam.prefix.query.queries import GetPrefixQuery, ListPrefixesQuery
 
 from .conftest import FakeKafkaProducer, InMemoryEventStore, InMemoryPrefixReadModelRepository
 

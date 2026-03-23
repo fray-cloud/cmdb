@@ -3,13 +3,13 @@
 from uuid import uuid4
 
 import pytest
-from ipam.domain.events import (
+from ipam.fhrp_group.domain.events import (
     FHRPGroupCreated,
     FHRPGroupDeleted,
     FHRPGroupUpdated,
 )
-from ipam.domain.fhrp_group import FHRPGroup
-from ipam.domain.value_objects import FHRPAuthType, FHRPProtocol
+from ipam.fhrp_group.domain.fhrp_group import FHRPGroup
+from ipam.fhrp_group.domain.value_objects import FHRPAuthType, FHRPProtocol
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

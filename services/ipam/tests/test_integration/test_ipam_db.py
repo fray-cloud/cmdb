@@ -7,21 +7,21 @@ Run with: uv run --package cmdb-ipam pytest services/ipam/tests/ -m integration
 from __future__ import annotations
 
 import pytest
-from ipam.application.command_handlers import (
-    CreatePrefixHandler,
-    DeletePrefixHandler,
-    UpdatePrefixHandler,
-)
-from ipam.application.commands import (
+from ipam.prefix.command.commands import (
     CreatePrefixCommand,
     DeletePrefixCommand,
     UpdatePrefixCommand,
 )
-from ipam.application.queries import ListPrefixesQuery
-from ipam.application.query_handlers import GetPrefixHandler, ListPrefixesHandler
-from ipam.domain.events import PrefixCreated, PrefixDeleted, PrefixUpdated
-from ipam.infrastructure.models import IPAMBase
-from ipam.infrastructure.read_model_repository import PostgresPrefixReadModelRepository
+from ipam.prefix.command.handlers import (
+    CreatePrefixHandler,
+    DeletePrefixHandler,
+    UpdatePrefixHandler,
+)
+from ipam.prefix.domain.events import PrefixCreated, PrefixDeleted, PrefixUpdated
+from ipam.prefix.infra.repository import PostgresPrefixReadModelRepository
+from ipam.prefix.query.handlers import GetPrefixHandler, ListPrefixesHandler
+from ipam.prefix.query.queries import ListPrefixesQuery
+from ipam.shared.models_base import IPAMBase
 from shared.event.models import EventStoreBase
 from shared.event.pg_store import PostgresEventStore
 from sqlalchemy import text
@@ -189,7 +189,7 @@ class TestPrefixCRUDWithDB:
         get_handler: GetPrefixHandler,
         session: AsyncSession,
     ) -> None:
-        from ipam.application.queries import GetPrefixQuery
+        from ipam.prefix.query.queries import GetPrefixQuery
 
         prefix_id = await create_handler.handle(
             CreatePrefixCommand(network="10.1.0.0/16", description="Original"),

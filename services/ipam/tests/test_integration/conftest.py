@@ -7,14 +7,14 @@ from typing import Any
 from uuid import UUID
 
 import pytest
-from ipam.application.command_handlers import (
+from ipam.prefix.command.handlers import (
     BulkCreatePrefixesHandler,
     CreatePrefixHandler,
     DeletePrefixHandler,
     UpdatePrefixHandler,
 )
-from ipam.application.query_handlers import GetPrefixHandler, ListPrefixesHandler
-from ipam.application.read_model import PrefixReadModelRepository
+from ipam.prefix.query.handlers import GetPrefixHandler, ListPrefixesHandler
+from ipam.prefix.query.read_model import PrefixReadModelRepository
 from shared.domain.exceptions import ConflictError
 from shared.event.domain_event import DomainEvent
 

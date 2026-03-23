@@ -2,8 +2,8 @@
 
 from uuid import uuid4
 
-from ipam.application.dto import GlobalSearchResultDTO, SearchResultDTO
-from ipam.application.queries import GlobalSearchQuery
+from ipam.shared.search.query.dto import GlobalSearchResultDTO, SearchResultDTO
+from ipam.shared.search.query.queries import GlobalSearchQuery
 
 
 class TestGlobalSearchQuery:

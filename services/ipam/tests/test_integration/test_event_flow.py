@@ -8,45 +8,32 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from ipam.domain.events import (
-    ASNCreated,
-    ASNDeleted,
-    ASNUpdated,
-    FHRPGroupCreated,
-    FHRPGroupDeleted,
-    FHRPGroupUpdated,
+from ipam.asn.domain.events import ASNCreated, ASNDeleted, ASNUpdated
+from ipam.fhrp_group.domain.events import FHRPGroupCreated, FHRPGroupDeleted, FHRPGroupUpdated
+from ipam.ip_address.domain.events import (
     IPAddressCreated,
     IPAddressDeleted,
     IPAddressStatusChanged,
     IPAddressUpdated,
+)
+from ipam.ip_range.domain.events import (
     IPRangeCreated,
     IPRangeDeleted,
     IPRangeStatusChanged,
     IPRangeUpdated,
+)
+from ipam.prefix.domain.events import (
     PrefixCreated,
     PrefixDeleted,
     PrefixStatusChanged,
     PrefixUpdated,
-    RIRCreated,
-    RIRDeleted,
-    RIRUpdated,
-    RouteTargetCreated,
-    RouteTargetDeleted,
-    RouteTargetUpdated,
-    ServiceCreated,
-    ServiceDeleted,
-    ServiceUpdated,
-    VLANCreated,
-    VLANDeleted,
-    VLANGroupCreated,
-    VLANGroupDeleted,
-    VLANGroupUpdated,
-    VLANStatusChanged,
-    VLANUpdated,
-    VRFCreated,
-    VRFDeleted,
-    VRFUpdated,
 )
+from ipam.rir.domain.events import RIRCreated, RIRDeleted, RIRUpdated
+from ipam.route_target.domain.events import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
+from ipam.service_entity.domain.events import ServiceCreated, ServiceDeleted, ServiceUpdated
+from ipam.vlan.domain.events import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
+from ipam.vlan_group.domain.events import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
+from ipam.vrf.domain.events import VRFCreated, VRFDeleted, VRFUpdated
 from shared.messaging.serialization import EventSerializer
 
 
@@ -427,4 +414,4 @@ class TestEventSerializerRoundtrip:
             network="10.0.0.0/8",
         )
         assert "PrefixCreated" in event.event_type
-        assert "ipam.domain.events" in event.event_type
+        assert "ipam.prefix.domain.events" in event.event_type

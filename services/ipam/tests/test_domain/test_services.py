@@ -1,16 +1,14 @@
 """Unit tests for IPAM domain services."""
 
 import pytest
-from ipam.domain.ip_address import IPAddress
-from ipam.domain.ip_range import IPRange
-from ipam.domain.prefix import Prefix
-from ipam.domain.services import (
-    AvailablePrefixService,
-    IPAvailabilityService,
-    IPRangeUtilizationService,
-    PrefixUtilizationService,
-)
-from ipam.domain.value_objects import PrefixStatus
+from ipam.ip_address.domain.ip_address import IPAddress
+from ipam.ip_range.domain.ip_range import IPRange
+from ipam.prefix.domain.prefix import Prefix
+from ipam.prefix.domain.value_objects import PrefixStatus
+from ipam.shared.services.available_prefix import AvailablePrefixService
+from ipam.shared.services.ip_availability import IPAvailabilityService
+from ipam.shared.services.ip_range_utilization import IPRangeUtilizationService
+from ipam.shared.services.prefix_utilization import PrefixUtilizationService
 
 # ---------------------------------------------------------------------------
 # Helpers

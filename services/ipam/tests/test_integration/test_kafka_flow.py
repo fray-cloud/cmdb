@@ -10,7 +10,7 @@ import asyncio
 from uuid import uuid4
 
 import pytest
-from ipam.domain.events import PrefixCreated
+from ipam.prefix.domain.events import PrefixCreated
 from shared.messaging.consumer import KafkaEventConsumer
 from shared.messaging.producer import KafkaEventProducer
 from shared.messaging.serialization import EventSerializer

@@ -3,14 +3,15 @@
 from uuid import UUID, uuid4
 
 import pytest
-from ipam.domain.events import (
+from ipam.ip_address.domain.events import (
     IPAddressCreated,
     IPAddressDeleted,
     IPAddressStatusChanged,
     IPAddressUpdated,
 )
-from ipam.domain.ip_address import IPAddress
-from ipam.domain.value_objects import IPAddressStatus, IPAddressValue
+from ipam.ip_address.domain.ip_address import IPAddress
+from ipam.ip_address.domain.value_objects import IPAddressStatus
+from ipam.shared.value_objects import IPAddressValue
 from pydantic import ValidationError
 from shared.domain.exceptions import BusinessRuleViolationError
 
