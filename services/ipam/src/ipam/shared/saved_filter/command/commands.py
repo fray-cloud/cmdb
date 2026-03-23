@@ -1,3 +1,5 @@
+"""Saved filter command definitions — create, update, and delete commands."""
+
 from uuid import UUID
 
 from shared.cqrs.command import Command

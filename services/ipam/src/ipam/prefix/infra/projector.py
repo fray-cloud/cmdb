@@ -1,3 +1,5 @@
+"""Event projectors that sync Prefix domain events to the read model."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent
@@ -21,6 +23,7 @@ async def _invalidate_cache(cache, prefix_id: UUID) -> None:
 
 
 async def handle_prefix_created(session_factory, cache, event: DomainEvent) -> None:
+    """Project a PrefixCreated event into the read model via upsert."""
     assert isinstance(event, PrefixCreated)
     async with session_factory() as session:
         stmt = insert(PrefixReadModel).values(
@@ -43,6 +46,7 @@ async def handle_prefix_created(session_factory, cache, event: DomainEvent) -> N
 
 
 async def handle_prefix_updated(session_factory, cache, event: DomainEvent) -> None:
+    """Project a PrefixUpdated event by updating changed fields in the read model."""
     assert isinstance(event, PrefixUpdated)
     values: dict = {}
     if event.description is not None:
@@ -63,11 +67,13 @@ async def handle_prefix_updated(session_factory, cache, event: DomainEvent) -> N
 
 
 async def handle_prefix_status_changed(session_factory, cache, event: DomainEvent) -> None:
+    """Project a PrefixStatusChanged event by updating the status field."""
     assert isinstance(event, PrefixStatusChanged)
     await _update_model(session_factory, PrefixReadModel, event.aggregate_id, {"status": event.new_status})
     await _invalidate_cache(cache, event.aggregate_id)
 
 
 async def handle_prefix_deleted(session_factory, cache, event: DomainEvent) -> None:
+    """Project a PrefixDeleted event by marking the read model as deleted."""
     await _update_model(session_factory, PrefixReadModel, event.aggregate_id, {"is_deleted": True})
     await _invalidate_cache(cache, event.aggregate_id)

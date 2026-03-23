@@ -1,3 +1,5 @@
+"""FHRP Group command handlers — process create, update, delete, and bulk commands."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.fhrp_group import FHRPAuthType, FHRPGroup, FHRPProtocol
 from ipam.fhrp_group.command.commands import (
     BulkCreateFHRPGroupsCommand,
     BulkDeleteFHRPGroupsCommand,
@@ -15,8 +18,6 @@ from ipam.fhrp_group.command.commands import (
     DeleteFHRPGroupCommand,
     UpdateFHRPGroupCommand,
 )
-from ipam.fhrp_group.domain.fhrp_group import FHRPGroup
-from ipam.fhrp_group.domain.value_objects import FHRPAuthType, FHRPProtocol
 from ipam.fhrp_group.query.read_model import FHRPGroupReadModelRepository
 
 # ---------------------------------------------------------------------------
@@ -25,6 +26,8 @@ from ipam.fhrp_group.query.read_model import FHRPGroupReadModelRepository
 
 
 class CreateFHRPGroupHandler(CommandHandler[UUID]):
+    """Handle CreateFHRPGroupCommand by creating a new FHRP Group aggregate."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -36,6 +39,7 @@ class CreateFHRPGroupHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateFHRPGroupCommand) -> UUID:
+        """Create an FHRP Group, persist events, update read model, and publish to Kafka."""
         group = FHRPGroup.create(
             protocol=FHRPProtocol(command.protocol),
             group_id_value=command.group_id_value,
@@ -54,6 +58,8 @@ class CreateFHRPGroupHandler(CommandHandler[UUID]):
 
 
 class UpdateFHRPGroupHandler(CommandHandler[None]):
+    """Handle UpdateFHRPGroupCommand by applying updates to an existing FHRP Group."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -87,6 +93,8 @@ class UpdateFHRPGroupHandler(CommandHandler[None]):
 
 
 class DeleteFHRPGroupHandler(CommandHandler[None]):
+    """Handle DeleteFHRPGroupCommand by soft-deleting an existing FHRP Group."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -118,6 +126,8 @@ class DeleteFHRPGroupHandler(CommandHandler[None]):
 
 
 class BulkCreateFHRPGroupsHandler(CommandHandler[list[UUID]]):
+    """Handle BulkCreateFHRPGroupsCommand by creating multiple FHRP Groups."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -152,6 +162,8 @@ class BulkCreateFHRPGroupsHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateFHRPGroupsHandler(CommandHandler[int]):
+    """Handle BulkUpdateFHRPGroupsCommand by updating multiple FHRP Groups."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -187,6 +199,8 @@ class BulkUpdateFHRPGroupsHandler(CommandHandler[int]):
 
 
 class BulkDeleteFHRPGroupsHandler(CommandHandler[int]):
+    """Handle BulkDeleteFHRPGroupsCommand by soft-deleting multiple FHRP Groups."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,

@@ -1,3 +1,5 @@
+"""Query handlers for IPRange read operations."""
+
 from uuid import UUID
 
 from shared.api.filtering import FilterOperator, FilterParam
@@ -5,13 +7,12 @@ from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
 
 from ipam.ip_address.query.read_model import IPAddressReadModelRepository
-from ipam.ip_range.domain.ip_range import IPRange
-from ipam.ip_range.domain.value_objects import IPRangeStatus
+from ipam.ip_range import IPRange, IPRangeStatus
 from ipam.ip_range.query.dto import IPRangeDTO
 from ipam.ip_range.query.read_model import IPRangeReadModelRepository
+from ipam.shared import IPAddressValue
 from ipam.shared.query_utils import build_common_filters, reconstruct_ip
-from ipam.shared.services.ip_range_utilization import IPRangeUtilizationService
-from ipam.shared.value_objects import IPAddressValue
+from ipam.shared.services import IPRangeUtilizationService
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -38,10 +39,13 @@ def _reconstruct_ip_range(data: dict) -> IPRange:
 
 
 class GetIPRangeHandler(QueryHandler[IPRangeDTO]):
+    """Retrieve a single IP range by ID from the read model."""
+
     def __init__(self, read_model_repo: IPRangeReadModelRepository) -> None:
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> IPRangeDTO:
+        """Fetch an IP range by ID and return its DTO representation."""
         data = await self._repo.find_by_id(query.range_id)
         if data is None:
             raise EntityNotFoundError(f"IPRange {query.range_id} not found")
@@ -49,10 +53,13 @@ class GetIPRangeHandler(QueryHandler[IPRangeDTO]):
 
 
 class ListIPRangesHandler(QueryHandler[tuple[list[IPRangeDTO], int]]):
+    """Retrieve a paginated, filterable list of IP ranges."""
+
     def __init__(self, read_model_repo: IPRangeReadModelRepository) -> None:
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> tuple[list[IPRangeDTO], int]:
+        """Build filters from query params and return matching IP ranges with total count."""
         filters, sort_params, tag_slugs, custom_field_filters = build_common_filters(query)
         if query.vrf_id is not None:
             filters.append(FilterParam(field="vrf_id", operator=FilterOperator.EQ, value=str(query.vrf_id)))
@@ -72,6 +79,8 @@ class ListIPRangesHandler(QueryHandler[tuple[list[IPRangeDTO], int]]):
 
 
 class GetIPRangeUtilizationHandler(QueryHandler[float]):
+    """Calculate address utilization for an IP range."""
+
     def __init__(
         self,
         range_repo: IPRangeReadModelRepository,
@@ -82,6 +91,7 @@ class GetIPRangeUtilizationHandler(QueryHandler[float]):
         self._service = IPRangeUtilizationService()
 
     async def handle(self, query: Query) -> float:
+        """Calculate and return the utilization ratio of the IP range."""
         data = await self._range_repo.find_by_id(query.range_id)
         if data is None:
             raise EntityNotFoundError(f"IPRange {query.range_id} not found")

@@ -1,14 +1,17 @@
+"""Command handlers for role creation, update, and deletion."""
+
 from uuid import UUID
 
 from shared.cqrs.command import Command, CommandHandler
 from shared.domain.exceptions import BusinessRuleViolationError, ConflictError, EntityNotFoundError
 
-from auth.role.domain.repository import RoleRepository
-from auth.role.domain.role import Role
-from auth.shared.domain.permission import Permission
+from auth.role.domain import Role, RoleRepository
+from auth.shared.domain import Permission
 
 
 class CreateRoleHandler(CommandHandler[UUID]):
+    """Handles role creation with duplicate-name checking."""
+
     def __init__(
         self,
         repository: RoleRepository,
@@ -16,6 +19,7 @@ class CreateRoleHandler(CommandHandler[UUID]):
         self._repository = repository
 
     async def handle(self, command: Command) -> UUID:
+        """Create a new role and return its ID."""
         existing = await self._repository.find_by_name(command.name, command.tenant_id)
         if existing is not None:
             raise ConflictError(f"Role '{command.name}' already exists")
@@ -36,6 +40,8 @@ class CreateRoleHandler(CommandHandler[UUID]):
 
 
 class UpdateRoleHandler(CommandHandler[None]):
+    """Handles partial updates to a non-system role."""
+
     def __init__(
         self,
         repository: RoleRepository,
@@ -43,6 +49,7 @@ class UpdateRoleHandler(CommandHandler[None]):
         self._repository = repository
 
     async def handle(self, command: Command) -> None:
+        """Update role fields; rejects modifications to system roles."""
         role = await self._repository.find_by_id(command.role_id)
         if role is None:
             raise EntityNotFoundError(f"Role {command.role_id} not found")
@@ -64,6 +71,8 @@ class UpdateRoleHandler(CommandHandler[None]):
 
 
 class DeleteRoleHandler(CommandHandler[None]):
+    """Handles deletion of a non-system role."""
+
     def __init__(
         self,
         repository: RoleRepository,
@@ -71,6 +80,7 @@ class DeleteRoleHandler(CommandHandler[None]):
         self._repository = repository
 
     async def handle(self, command: Command) -> None:
+        """Delete the role; rejects deletion of system roles."""
         role = await self._repository.find_by_id(command.role_id)
         if role is None:
             raise EntityNotFoundError(f"Role {command.role_id} not found")

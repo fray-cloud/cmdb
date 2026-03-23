@@ -1,3 +1,5 @@
+"""RIR PostgreSQL read model repository implementation."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,6 +17,8 @@ from ipam.shared.infra.query_helpers import _apply_advanced_filters
 
 
 class PostgresRIRReadModelRepository(RIRReadModelRepository):
+    """PostgreSQL-backed read model repository for RIR queries."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -32,6 +36,7 @@ class PostgresRIRReadModelRepository(RIRReadModelRepository):
         await self._session.flush()
 
     async def find_by_id(self, entity_id: UUID) -> dict | None:
+        """Find a single RIR by its ID, returning None if not found or deleted."""
         model = await self._session.get(RIRReadModel, entity_id)
         if model is None or model.is_deleted:
             return None
@@ -47,6 +52,7 @@ class PostgresRIRReadModelRepository(RIRReadModelRepository):
         tag_slugs: list[str] | None = None,
         custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
+        """Return a paginated, filtered list of RIRs with total count."""
         base = select(RIRReadModel).where(RIRReadModel.is_deleted == sa.false())
         filtered = _apply_advanced_filters(
             base,

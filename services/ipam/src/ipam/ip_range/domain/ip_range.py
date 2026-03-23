@@ -1,3 +1,5 @@
+"""IPRange aggregate root for contiguous IP address range management."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -12,6 +14,8 @@ from ipam.shared.value_objects import IPAddressValue
 
 
 class IPRange(AggregateRoot):
+    """Aggregate root representing a contiguous range of IP addresses defined by start and end bounds."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.start_address: IPAddressValue | None = None
@@ -37,6 +41,7 @@ class IPRange(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> IPRange:
+        """Create a new IPRange aggregate with validated start and end addresses."""
         start = IPAddressValue(address=start_address)
         end = IPAddressValue(address=end_address)
         if start.version != end.version:
@@ -68,6 +73,7 @@ class IPRange(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable fields of the IP range."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted IP range")
         self.apply_event(
@@ -82,6 +88,7 @@ class IPRange(AggregateRoot):
         )
 
     def change_status(self, new_status: IPRangeStatus) -> None:
+        """Transition the IP range to a new lifecycle status."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot change status of a deleted IP range")
         if self.status == new_status:
@@ -96,6 +103,7 @@ class IPRange(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the IP range by emitting an IPRangeDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("IP range is already deleted")
         self.apply_event(

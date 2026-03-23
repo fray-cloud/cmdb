@@ -1,13 +1,18 @@
-from ipam.prefix.domain.prefix import Prefix
+"""Available prefix domain service — finds unused subnets within a parent prefix."""
+
+from ipam.prefix import Prefix
 
 
 class AvailablePrefixService:
+    """Finds available (non-overlapping) subnets of a desired length within a parent prefix."""
+
     def find_available(
         self,
         parent: Prefix,
         child_prefixes: list[Prefix],
         desired_prefix_length: int,
     ) -> list[str]:
+        """Return a list of available subnet CIDRs that do not overlap with existing children."""
         if parent.network is None:
             return []
         parent_net = parent.network.ip_network

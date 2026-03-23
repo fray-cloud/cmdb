@@ -1,3 +1,5 @@
+"""Service command handlers — process create, update, delete, and bulk commands."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.service_entity import Service, ServiceProtocol
 from ipam.service_entity.command.commands import (
     BulkCreateServicesCommand,
     BulkDeleteServicesCommand,
@@ -15,8 +18,6 @@ from ipam.service_entity.command.commands import (
     DeleteServiceCommand,
     UpdateServiceCommand,
 )
-from ipam.service_entity.domain.service import Service
-from ipam.service_entity.domain.value_objects import ServiceProtocol
 from ipam.service_entity.query.read_model import ServiceReadModelRepository
 
 # ---------------------------------------------------------------------------
@@ -25,6 +26,8 @@ from ipam.service_entity.query.read_model import ServiceReadModelRepository
 
 
 class CreateServiceHandler(CommandHandler[UUID]):
+    """Handle CreateServiceCommand by creating a new Service aggregate."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -36,6 +39,7 @@ class CreateServiceHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateServiceCommand) -> UUID:
+        """Create a Service, persist events, update read model, and publish to Kafka."""
         svc = Service.create(
             name=command.name,
             protocol=ServiceProtocol(command.protocol),
@@ -53,6 +57,8 @@ class CreateServiceHandler(CommandHandler[UUID]):
 
 
 class UpdateServiceHandler(CommandHandler[None]):
+    """Handle UpdateServiceCommand by applying updates to an existing Service."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -87,6 +93,8 @@ class UpdateServiceHandler(CommandHandler[None]):
 
 
 class DeleteServiceHandler(CommandHandler[None]):
+    """Handle DeleteServiceCommand by soft-deleting an existing Service."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -118,6 +126,8 @@ class DeleteServiceHandler(CommandHandler[None]):
 
 
 class BulkCreateServicesHandler(CommandHandler[list[UUID]]):
+    """Handle BulkCreateServicesCommand by creating multiple Services."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -151,6 +161,8 @@ class BulkCreateServicesHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateServicesHandler(CommandHandler[int]):
+    """Handle BulkUpdateServicesCommand by updating multiple Services."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -187,6 +199,8 @@ class BulkUpdateServicesHandler(CommandHandler[int]):
 
 
 class BulkDeleteServicesHandler(CommandHandler[int]):
+    """Handle BulkDeleteServicesCommand by soft-deleting multiple Services."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,

@@ -1,3 +1,5 @@
+"""User aggregate defining identity, status, and role/group membership."""
+
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -8,7 +10,7 @@ from shared.domain.entity import Entity
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.domain_event import DomainEvent
 
-from auth.shared.domain.events import RoleAssigned, RoleRemoved, UserCreated, UserLocked
+from auth.shared.domain import RoleAssigned, RoleRemoved, UserCreated, UserLocked
 
 
 class UserStatus(StrEnum):
@@ -18,6 +20,8 @@ class UserStatus(StrEnum):
 
 
 class User(Entity):
+    """User aggregate root managing authentication state and role assignments."""
+
     email: str
     password_hash: str
     tenant_id: UUID
@@ -43,6 +47,7 @@ class User(Entity):
         tenant_id: UUID,
         display_name: str | None = None,
     ) -> "User":
+        """Create a new user and emit a UserCreated domain event."""
         user = cls(
             email=email,
             password_hash=password_hash,

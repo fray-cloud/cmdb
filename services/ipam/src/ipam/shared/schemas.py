@@ -1,3 +1,5 @@
+"""Shared REST API schemas for bulk operations and status changes."""
+
 from uuid import UUID
 
 from pydantic import BaseModel

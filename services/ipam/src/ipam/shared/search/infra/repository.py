@@ -1,3 +1,5 @@
+"""Global search PostgreSQL repository — full-text search across all IPAM read models."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -6,18 +8,18 @@ import sqlalchemy as sa
 from sqlalchemy import func, literal_column, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ipam.asn.infra.models import ASNReadModel
-from ipam.fhrp_group.infra.models import FHRPGroupReadModel
-from ipam.ip_address.infra.models import IPAddressReadModel
-from ipam.ip_range.infra.models import IPRangeReadModel
-from ipam.prefix.infra.models import PrefixReadModel
-from ipam.rir.infra.models import RIRReadModel
-from ipam.route_target.infra.models import RouteTargetReadModel
-from ipam.service_entity.infra.models import ServiceReadModel
-from ipam.shared.search.query.read_model import GlobalSearchRepository
-from ipam.vlan.infra.models import VLANReadModel
-from ipam.vlan_group.infra.models import VLANGroupReadModel
-from ipam.vrf.infra.models import VRFReadModel
+from ipam.asn.infra import ASNReadModel
+from ipam.fhrp_group.infra import FHRPGroupReadModel
+from ipam.ip_address.infra import IPAddressReadModel
+from ipam.ip_range.infra import IPRangeReadModel
+from ipam.prefix.infra import PrefixReadModel
+from ipam.rir.infra import RIRReadModel
+from ipam.route_target.infra import RouteTargetReadModel
+from ipam.service_entity.infra import ServiceReadModel
+from ipam.shared.search.query import GlobalSearchRepository
+from ipam.vlan.infra import VLANReadModel
+from ipam.vlan_group.infra import VLANGroupReadModel
+from ipam.vrf.infra import VRFReadModel
 
 SEARCHABLE_MODELS: list[tuple[str, Any, Any]] = [
     ("prefix", PrefixReadModel, PrefixReadModel.network),
@@ -35,6 +37,8 @@ SEARCHABLE_MODELS: list[tuple[str, Any, Any]] = [
 
 
 class PostgresGlobalSearchRepository(GlobalSearchRepository):
+    """PostgreSQL-backed global search using tsvector full-text search."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 

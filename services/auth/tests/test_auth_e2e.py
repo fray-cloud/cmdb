@@ -1,13 +1,11 @@
 from uuid import uuid4
 
 import pytest
-from auth.role.command.commands import CreateRoleCommand
-from auth.role.command.handlers import CreateRoleHandler
+from auth.role.command import CreateRoleCommand, CreateRoleHandler
+from auth.shared import BcryptPasswordService, JWTService
 from auth.shared.auth_router import LoginCommand, LoginHandler
-from auth.shared.domain.services import PermissionChecker
-from auth.shared.security import BcryptPasswordService, JWTService
-from auth.user.command.commands import AssignRoleCommand, RegisterUserCommand
-from auth.user.command.handlers import AssignRoleHandler, RegisterUserHandler
+from auth.shared.domain import PermissionChecker
+from auth.user.command import AssignRoleCommand, AssignRoleHandler, RegisterUserCommand, RegisterUserHandler
 from shared.domain.exceptions import AuthorizationError, ConflictError
 
 from tests.conftest import (

@@ -1,3 +1,5 @@
+"""ASN PostgreSQL read model repository implementation."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,6 +17,8 @@ from ipam.shared.infra.query_helpers import _apply_advanced_filters
 
 
 class PostgresASNReadModelRepository(ASNReadModelRepository):
+    """PostgreSQL-backed read model repository for ASN queries."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -33,6 +37,7 @@ class PostgresASNReadModelRepository(ASNReadModelRepository):
         await self._session.flush()
 
     async def find_by_id(self, entity_id: UUID) -> dict | None:
+        """Find a single ASN by its ID, returning None if not found or deleted."""
         model = await self._session.get(ASNReadModel, entity_id)
         if model is None or model.is_deleted:
             return None
@@ -48,6 +53,7 @@ class PostgresASNReadModelRepository(ASNReadModelRepository):
         tag_slugs: list[str] | None = None,
         custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
+        """Return a paginated, filtered list of ASNs with total count."""
         base = select(ASNReadModel).where(ASNReadModel.is_deleted == sa.false())
         filtered = _apply_advanced_filters(
             base,

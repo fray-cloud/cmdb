@@ -1,3 +1,5 @@
+"""Authentication router for register, login, refresh, logout, and token validation."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
@@ -7,19 +9,17 @@ from shared.cqrs.command import Command, CommandHandler
 from shared.domain.exceptions import AuthorizationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.role.domain.repository import RoleRepository
-from auth.role.infra.repository import PostgresRoleRepository
+from auth.role import RoleRepository
+from auth.role.infra import PostgresRoleRepository
 from auth.shared.dependencies import get_current_user
 from auth.shared.login_rate_limiter import LoginRateLimiter
 from auth.shared.security import BcryptPasswordService, JWTService
 from auth.shared.token_blacklist import RedisTokenBlacklist
-from auth.user.command.commands import RegisterUserCommand
-from auth.user.command.handlers import RegisterUserHandler
-from auth.user.domain.repository import UserRepository
-from auth.user.infra.repository import PostgresUserRepository
-from auth.user.query.handlers import GetUserHandler
-from auth.user.query.queries import GetUserQuery
-from auth.user.router.schemas import RegisterRequest, UserResponse
+from auth.user.command import RegisterUserCommand, RegisterUserHandler
+from auth.user.domain import UserRepository
+from auth.user.infra import PostgresUserRepository
+from auth.user.query import GetUserHandler, GetUserQuery
+from auth.user.router import RegisterRequest, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -76,6 +76,8 @@ class AuthTokenResponse(BaseModel):
 
 
 class LoginHandler(CommandHandler[AuthTokenDTO]):
+    """Handles user login with rate limiting and credential verification."""
+
     def __init__(
         self,
         repository: UserRepository,
@@ -91,6 +93,7 @@ class LoginHandler(CommandHandler[AuthTokenDTO]):
         self._rate_limiter = rate_limiter
 
     async def handle(self, command: Command) -> AuthTokenDTO:
+        """Authenticate user credentials and return JWT token pair."""
         if await self._rate_limiter.is_locked(command.email, command.client_ip):
             raise AuthorizationError("Too many login attempts. Please try again later.")
 
@@ -129,6 +132,8 @@ class LoginHandler(CommandHandler[AuthTokenDTO]):
 
 
 class RefreshTokenHandler(CommandHandler[AuthTokenDTO]):
+    """Handles access token refresh using a valid refresh token."""
+
     def __init__(
         self,
         repository: UserRepository,
@@ -142,6 +147,7 @@ class RefreshTokenHandler(CommandHandler[AuthTokenDTO]):
         self._token_blacklist = token_blacklist
 
     async def handle(self, command: Command) -> AuthTokenDTO:
+        """Validate the refresh token and issue a new access token."""
         try:
             payload = self._jwt_service.decode_token(command.refresh_token)
         except Exception as exc:
@@ -178,6 +184,8 @@ class RefreshTokenHandler(CommandHandler[AuthTokenDTO]):
 
 
 class LogoutHandler(CommandHandler[None]):
+    """Handles logout by blacklisting the refresh token."""
+
     def __init__(
         self,
         jwt_service: JWTService,
@@ -187,6 +195,7 @@ class LogoutHandler(CommandHandler[None]):
         self._token_blacklist = token_blacklist
 
     async def handle(self, command: Command) -> None:
+        """Blacklist the refresh token's JTI for its remaining lifetime."""
         try:
             payload = self._jwt_service.decode_token(command.refresh_token)
         except Exception:
@@ -274,6 +283,7 @@ async def register(
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> UserResponse:
+    """Register a new user account."""
     user_id = await command_bus.dispatch(RegisterUserCommand(**body.model_dump()))
     result = await query_bus.dispatch(GetUserQuery(user_id=user_id))
     return UserResponse(**result.model_dump())
@@ -285,6 +295,7 @@ async def login(
     request: Request,
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
 ) -> AuthTokenResponse:
+    """Authenticate a user and return access/refresh tokens."""
     client_ip = request.client.host if request.client else "0.0.0.0"
     result = await command_bus.dispatch(LoginCommand(**body.model_dump(), client_ip=client_ip))
     return AuthTokenResponse(**result.model_dump())
@@ -295,6 +306,7 @@ async def refresh_token(
     body: RefreshTokenRequest,
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
 ) -> AuthTokenResponse:
+    """Refresh an access token using a valid refresh token."""
     result = await command_bus.dispatch(RefreshTokenCommand(refresh_token=body.refresh_token))
     return AuthTokenResponse(**result.model_dump())
 
@@ -305,6 +317,7 @@ async def logout(
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
     _current_user: dict = Depends(get_current_user),  # noqa: B008
 ) -> None:
+    """Log out by blacklisting the refresh token."""
     await command_bus.dispatch(LogoutCommand(refresh_token=body.refresh_token))
 
 
@@ -312,6 +325,7 @@ async def logout(
 async def validate(
     current_user: dict = Depends(get_current_user),  # noqa: B008
 ) -> None:
+    """Validate the current access token and return user info in headers."""
     from fastapi.responses import Response
 
     response = Response(status_code=200)

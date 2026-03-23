@@ -1,3 +1,5 @@
+"""Value objects for the Prefix domain."""
+
 import ipaddress
 from enum import StrEnum
 
@@ -6,6 +8,8 @@ from shared.domain.value_object import ValueObject
 
 
 class PrefixStatus(StrEnum):
+    """Lifecycle status of a prefix."""
+
     ACTIVE = "active"
     RESERVED = "reserved"
     DEPRECATED = "deprecated"
@@ -13,6 +17,8 @@ class PrefixStatus(StrEnum):
 
 
 class PrefixNetwork(ValueObject):
+    """Immutable value object wrapping a validated IPv4 or IPv6 network CIDR."""
+
     network: str
 
     @field_validator("network")

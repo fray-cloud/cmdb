@@ -1,3 +1,5 @@
+"""FHRP Group SQLAlchemy read model — denormalized projection table."""
+
 from datetime import datetime
 from uuid import UUID
 

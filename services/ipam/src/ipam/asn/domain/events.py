@@ -1,3 +1,5 @@
+"""ASN domain events — ASNCreated, ASNUpdated, ASNDeleted."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

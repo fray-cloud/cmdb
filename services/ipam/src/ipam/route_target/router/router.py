@@ -1,3 +1,5 @@
+"""Route Target REST API router — CRUD and bulk endpoints for BGP route targets."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,26 +9,28 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.route_target.command.commands import (
+from ipam.route_target.command import (
     BulkCreateRouteTargetsCommand,
+    BulkCreateRouteTargetsHandler,
     BulkDeleteRouteTargetsCommand,
+    BulkDeleteRouteTargetsHandler,
     BulkUpdateRouteTargetItem,
     BulkUpdateRouteTargetsCommand,
-    CreateRouteTargetCommand,
-    DeleteRouteTargetCommand,
-    UpdateRouteTargetCommand,
-)
-from ipam.route_target.command.handlers import (
-    BulkCreateRouteTargetsHandler,
-    BulkDeleteRouteTargetsHandler,
     BulkUpdateRouteTargetsHandler,
+    CreateRouteTargetCommand,
     CreateRouteTargetHandler,
+    DeleteRouteTargetCommand,
     DeleteRouteTargetHandler,
+    UpdateRouteTargetCommand,
     UpdateRouteTargetHandler,
 )
-from ipam.route_target.infra.repository import PostgresRouteTargetReadModelRepository
-from ipam.route_target.query.handlers import GetRouteTargetHandler, ListRouteTargetsHandler
-from ipam.route_target.query.queries import GetRouteTargetQuery, ListRouteTargetsQuery
+from ipam.route_target.infra import PostgresRouteTargetReadModelRepository
+from ipam.route_target.query import (
+    GetRouteTargetHandler,
+    GetRouteTargetQuery,
+    ListRouteTargetsHandler,
+    ListRouteTargetsQuery,
+)
 from ipam.route_target.router.schemas import (
     BulkUpdateRouteTargetItem as BulkUpdateRouteTargetItemSchema,
 )

@@ -1,3 +1,5 @@
+"""ASN REST API router — CRUD and bulk endpoints for Autonomous System Numbers."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,26 +9,23 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.asn.command.commands import (
+from ipam.asn.command import (
     BulkCreateASNsCommand,
+    BulkCreateASNsHandler,
     BulkDeleteASNsCommand,
+    BulkDeleteASNsHandler,
     BulkUpdateASNItem,
     BulkUpdateASNsCommand,
-    CreateASNCommand,
-    DeleteASNCommand,
-    UpdateASNCommand,
-)
-from ipam.asn.command.handlers import (
-    BulkCreateASNsHandler,
-    BulkDeleteASNsHandler,
     BulkUpdateASNsHandler,
+    CreateASNCommand,
     CreateASNHandler,
+    DeleteASNCommand,
     DeleteASNHandler,
+    UpdateASNCommand,
     UpdateASNHandler,
 )
-from ipam.asn.infra.repository import PostgresASNReadModelRepository
-from ipam.asn.query.handlers import GetASNHandler, ListASNsHandler
-from ipam.asn.query.queries import GetASNQuery, ListASNsQuery
+from ipam.asn.infra import PostgresASNReadModelRepository
+from ipam.asn.query import GetASNHandler, GetASNQuery, ListASNsHandler, ListASNsQuery
 from ipam.asn.router.schemas import (
     ASNListResponse,
     ASNResponse,

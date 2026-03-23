@@ -1,3 +1,5 @@
+"""GraphQL Strawberry type definitions for all IPAM entities."""
+
 import uuid
 from datetime import datetime
 

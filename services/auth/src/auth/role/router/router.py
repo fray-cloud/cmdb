@@ -1,3 +1,5 @@
+"""Role and permission REST API endpoints."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
@@ -5,12 +7,24 @@ from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.group.infra.repository import PostgresGroupRepository
-from auth.role.command.commands import CreateRoleCommand, DeleteRoleCommand, UpdateRoleCommand
-from auth.role.command.handlers import CreateRoleHandler, DeleteRoleHandler, UpdateRoleHandler
-from auth.role.infra.repository import PostgresRoleRepository
-from auth.role.query.handlers import CheckPermissionHandler, GetRoleHandler, ListRolesHandler
-from auth.role.query.queries import CheckPermissionQuery, GetRoleQuery, ListRolesQuery
+from auth.group.infra import PostgresGroupRepository
+from auth.role.command import (
+    CreateRoleCommand,
+    CreateRoleHandler,
+    DeleteRoleCommand,
+    DeleteRoleHandler,
+    UpdateRoleCommand,
+    UpdateRoleHandler,
+)
+from auth.role.infra import PostgresRoleRepository
+from auth.role.query import (
+    CheckPermissionHandler,
+    CheckPermissionQuery,
+    GetRoleHandler,
+    GetRoleQuery,
+    ListRolesHandler,
+    ListRolesQuery,
+)
 from auth.role.router.schemas import (
     CreateRoleRequest,
     PermissionCheckResponse,
@@ -19,7 +33,7 @@ from auth.role.router.schemas import (
     UpdateRoleRequest,
 )
 from auth.shared.dependencies import get_current_user
-from auth.user.infra.repository import PostgresUserRepository
+from auth.user.infra import PostgresUserRepository
 
 router = APIRouter(prefix="/roles", tags=["roles"])
 permission_router = APIRouter(prefix="/permissions", tags=["permissions"])
@@ -67,6 +81,7 @@ async def create_role(
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> RoleResponse:
+    """Create a new role with optional permissions."""
     role_id = await command_bus.dispatch(
         CreateRoleCommand(
             name=body.name,
@@ -85,6 +100,7 @@ async def list_roles(
     params: OffsetParams = Depends(),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> RoleListResponse:
+    """List roles for the current tenant with pagination."""
     items, total = await query_bus.dispatch(
         ListRolesQuery(
             tenant_id=current_user["tenant_id"],
@@ -106,6 +122,7 @@ async def get_role(
     _current_user: dict = Depends(get_current_user),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> RoleResponse:
+    """Retrieve a single role by ID."""
     result = await query_bus.dispatch(GetRoleQuery(role_id=role_id))
     return RoleResponse(**result.model_dump())
 
@@ -118,6 +135,7 @@ async def update_role(
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> RoleResponse:
+    """Partially update a role."""
     await command_bus.dispatch(
         UpdateRoleCommand(
             role_id=role_id,
@@ -139,6 +157,7 @@ async def delete_role(
     _current_user: dict = Depends(get_current_user),  # noqa: B008
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
 ) -> None:
+    """Delete a role by ID."""
     await command_bus.dispatch(DeleteRoleCommand(role_id=role_id))
 
 
@@ -149,5 +168,6 @@ async def check_permission(
     action: str,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> PermissionCheckResponse:
+    """Check whether a user has a specific permission."""
     result = await query_bus.dispatch(CheckPermissionQuery(user_id=user_id, object_type=object_type, action=action))
     return PermissionCheckResponse(**result.model_dump())

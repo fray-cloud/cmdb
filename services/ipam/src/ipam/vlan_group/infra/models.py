@@ -1,3 +1,5 @@
+"""SQLAlchemy read model for the VLANGroup aggregate."""
+
 from datetime import datetime
 from uuid import UUID
 

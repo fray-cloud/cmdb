@@ -4,7 +4,7 @@ import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from ipam.shared.import_export.services import VALID_ENTITY_TYPES, export_csv, export_json, export_yaml, parse_csv
+from ipam.shared.import_export import VALID_ENTITY_TYPES, export_csv, export_json, export_yaml, parse_csv
 
 
 class TestParseCSV:

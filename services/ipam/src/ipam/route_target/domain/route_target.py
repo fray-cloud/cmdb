@@ -1,3 +1,5 @@
+"""Route Target aggregate root — BGP route target domain entity."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -11,6 +13,8 @@ from ipam.shared.value_objects import RouteDistinguisher
 
 
 class RouteTarget(AggregateRoot):
+    """Route Target aggregate managing BGP route target lifecycle via event sourcing."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.name: RouteDistinguisher | None = None
@@ -30,6 +34,7 @@ class RouteTarget(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> RouteTarget:
+        """Create a new Route Target and emit a RouteTargetCreated event."""
         name_vo = RouteDistinguisher(rd=name)
         aggregate = cls()
         aggregate.apply_event(
@@ -53,6 +58,7 @@ class RouteTarget(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable Route Target fields and emit a RouteTargetUpdated event."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted RouteTarget")
         self.apply_event(
@@ -67,6 +73,7 @@ class RouteTarget(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the Route Target and emit a RouteTargetDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("RouteTarget is already deleted")
         self.apply_event(

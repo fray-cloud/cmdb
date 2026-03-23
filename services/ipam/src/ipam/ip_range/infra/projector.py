@@ -1,3 +1,5 @@
+"""Event projectors that sync IPRange domain events to the read model."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent
@@ -16,6 +18,7 @@ async def _update_model(session_factory, model_cls, aggregate_id: UUID, values: 
 
 
 async def handle_ip_range_created(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPRangeCreated event into the read model via upsert."""
     assert isinstance(event, IPRangeCreated)
     async with session_factory() as session:
         stmt = insert(IPRangeReadModel).values(
@@ -36,6 +39,7 @@ async def handle_ip_range_created(session_factory, cache, event: DomainEvent) ->
 
 
 async def handle_ip_range_updated(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPRangeUpdated event by updating changed fields."""
     assert isinstance(event, IPRangeUpdated)
     values: dict = {}
     if event.description is not None:
@@ -51,9 +55,11 @@ async def handle_ip_range_updated(session_factory, cache, event: DomainEvent) ->
 
 
 async def handle_ip_range_status_changed(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPRangeStatusChanged event by updating the status field."""
     assert isinstance(event, IPRangeStatusChanged)
     await _update_model(session_factory, IPRangeReadModel, event.aggregate_id, {"status": event.new_status})
 
 
 async def handle_ip_range_deleted(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPRangeDeleted event by marking the read model as deleted."""
     await _update_model(session_factory, IPRangeReadModel, event.aggregate_id, {"is_deleted": True})

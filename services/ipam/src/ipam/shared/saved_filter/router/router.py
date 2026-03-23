@@ -1,3 +1,5 @@
+"""Saved filter REST API router — CRUD endpoints for user filter presets."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status

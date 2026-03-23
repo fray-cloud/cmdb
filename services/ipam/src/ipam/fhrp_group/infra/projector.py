@@ -1,3 +1,5 @@
+"""FHRP Group event projector — handles domain events to update the read model."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

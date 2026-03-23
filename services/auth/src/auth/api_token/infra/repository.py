@@ -1,19 +1,23 @@
+"""PostgreSQL-backed API token repository implementation."""
+
 from uuid import UUID
 
 from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.api_token.domain.api_token import APIToken
-from auth.api_token.domain.repository import APITokenRepository
+from auth.api_token.domain import APIToken, APITokenRepository
 from auth.shared.models import APITokenModel
 
 
 class PostgresAPITokenRepository(APITokenRepository):
+    """APITokenRepository implementation using PostgreSQL via SQLAlchemy."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def find_by_id(self, entity_id: UUID) -> APIToken | None:
+        """Find an API token by primary key."""
         result = await self._session.get(APITokenModel, entity_id)
         return self._to_entity(result) if result else None
 
@@ -30,6 +34,7 @@ class PostgresAPITokenRepository(APITokenRepository):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[APIToken], int]:
+        """Return a paginated list of tokens and total count for a user."""
         count_stmt = select(sa_func.count()).select_from(APITokenModel).where(APITokenModel.user_id == user_id)
         total = (await self._session.execute(count_stmt)).scalar_one()
 

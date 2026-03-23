@@ -3,13 +3,12 @@
 from datetime import UTC
 from uuid import uuid4
 
-from ipam.shared.saved_filter.command.commands import (
+from ipam.shared.saved_filter.command import (
     CreateSavedFilterCommand,
     DeleteSavedFilterCommand,
     UpdateSavedFilterCommand,
 )
-from ipam.shared.saved_filter.query.dto import SavedFilterDTO
-from ipam.shared.saved_filter.query.queries import GetSavedFilterQuery, ListSavedFiltersQuery
+from ipam.shared.saved_filter.query import GetSavedFilterQuery, ListSavedFiltersQuery, SavedFilterDTO
 
 
 class TestSavedFilterCommands:

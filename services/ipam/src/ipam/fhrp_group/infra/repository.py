@@ -1,3 +1,5 @@
+"""FHRP Group PostgreSQL read model repository implementation."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,6 +17,8 @@ from ipam.shared.infra.query_helpers import _apply_advanced_filters
 
 
 class PostgresFHRPGroupReadModelRepository(FHRPGroupReadModelRepository):
+    """PostgreSQL-backed read model repository for FHRP Group queries."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -35,6 +39,7 @@ class PostgresFHRPGroupReadModelRepository(FHRPGroupReadModelRepository):
         await self._session.flush()
 
     async def find_by_id(self, entity_id: UUID) -> dict | None:
+        """Find a single FHRP Group by ID, returning None if not found or deleted."""
         model = await self._session.get(FHRPGroupReadModel, entity_id)
         if model is None or model.is_deleted:
             return None
@@ -50,6 +55,7 @@ class PostgresFHRPGroupReadModelRepository(FHRPGroupReadModelRepository):
         tag_slugs: list[str] | None = None,
         custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
+        """Return a paginated, filtered list of FHRP Groups with total count."""
         base = select(FHRPGroupReadModel).where(FHRPGroupReadModel.is_deleted == sa.false())
         filtered = _apply_advanced_filters(
             base,

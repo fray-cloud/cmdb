@@ -1,3 +1,5 @@
+"""RIR SQLAlchemy read model — denormalized projection table for RIR queries."""
+
 from datetime import datetime
 from uuid import UUID
 

@@ -1,3 +1,5 @@
+"""FastAPI router for IPRange CRUD and utilization endpoints."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,29 +9,33 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.ip_address.infra.repository import PostgresIPAddressReadModelRepository
-from ipam.ip_range.command.commands import (
+from ipam.ip_address.infra import PostgresIPAddressReadModelRepository
+from ipam.ip_range.command import (
     BulkCreateIPRangesCommand,
+    BulkCreateIPRangesHandler,
     BulkDeleteIPRangesCommand,
+    BulkDeleteIPRangesHandler,
     BulkUpdateIPRangeItem,
     BulkUpdateIPRangesCommand,
-    ChangeIPRangeStatusCommand,
-    CreateIPRangeCommand,
-    DeleteIPRangeCommand,
-    UpdateIPRangeCommand,
-)
-from ipam.ip_range.command.handlers import (
-    BulkCreateIPRangesHandler,
-    BulkDeleteIPRangesHandler,
     BulkUpdateIPRangesHandler,
+    ChangeIPRangeStatusCommand,
     ChangeIPRangeStatusHandler,
+    CreateIPRangeCommand,
     CreateIPRangeHandler,
+    DeleteIPRangeCommand,
     DeleteIPRangeHandler,
+    UpdateIPRangeCommand,
     UpdateIPRangeHandler,
 )
-from ipam.ip_range.infra.repository import PostgresIPRangeReadModelRepository
-from ipam.ip_range.query.handlers import GetIPRangeHandler, GetIPRangeUtilizationHandler, ListIPRangesHandler
-from ipam.ip_range.query.queries import GetIPRangeQuery, GetIPRangeUtilizationQuery, ListIPRangesQuery
+from ipam.ip_range.infra import PostgresIPRangeReadModelRepository
+from ipam.ip_range.query import (
+    GetIPRangeHandler,
+    GetIPRangeQuery,
+    GetIPRangeUtilizationHandler,
+    GetIPRangeUtilizationQuery,
+    ListIPRangesHandler,
+    ListIPRangesQuery,
+)
 from ipam.ip_range.router.schemas import (
     BulkUpdateIPRangeItem as BulkUpdateIPRangeItemSchema,
 )
@@ -115,6 +121,7 @@ async def create_ip_range(
     body: CreateIPRangeRequest,
     request: Request,
 ) -> IPRangeResponse:
+    """Create a new IP range."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -141,6 +148,7 @@ async def list_ip_ranges(
     sort_dir: str = "asc",
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> IPRangeListResponse:
+    """List IP ranges with pagination, filtering, and sorting."""
     custom_field_filters = json.loads(custom_fields) if custom_fields else None
     items, total = await query_bus.dispatch(
         ListIPRangesQuery(
@@ -173,6 +181,7 @@ async def bulk_update_ip_ranges(
     body: list[BulkUpdateIPRangeItemSchema],
     request: Request,
 ) -> BulkUpdateResponse:
+    """Bulk update multiple IP ranges."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
@@ -191,6 +200,7 @@ async def bulk_delete_ip_ranges(
     body: BulkDeleteRequest,
     request: Request,
 ) -> BulkDeleteResponse:
+    """Bulk delete multiple IP ranges by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteIPRangesCommand(ids=body.ids))
@@ -203,6 +213,7 @@ async def get_ip_range(
     range_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> IPRangeResponse:
+    """Retrieve a single IP range by ID."""
     result = await query_bus.dispatch(GetIPRangeQuery(range_id=range_id))
     return IPRangeResponse(**result.model_dump())
 
@@ -213,6 +224,7 @@ async def update_ip_range(
     body: UpdateIPRangeRequest,
     request: Request,
 ) -> IPRangeResponse:
+    """Partially update an IP range."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -228,6 +240,7 @@ async def change_ip_range_status(
     body: ChangeStatusRequest,
     request: Request,
 ) -> IPRangeResponse:
+    """Change the lifecycle status of an IP range."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -242,6 +255,7 @@ async def delete_ip_range(
     range_id: UUID,
     request: Request,
 ) -> None:
+    """Delete an IP range by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteIPRangeCommand(range_id=range_id))
@@ -257,6 +271,7 @@ async def bulk_create_ip_ranges(
     body: list[CreateIPRangeRequest],
     request: Request,
 ) -> BulkCreateResponse:
+    """Bulk create multiple IP ranges."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(
@@ -271,5 +286,6 @@ async def get_ip_range_utilization(
     range_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> dict:
+    """Get address utilization for an IP range."""
     utilization = await query_bus.dispatch(GetIPRangeUtilizationQuery(range_id=range_id))
     return {"range_id": range_id, "utilization": utilization}

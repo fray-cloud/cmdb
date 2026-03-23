@@ -1,3 +1,5 @@
+"""FastAPI router for VRF CRUD endpoints."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -13,26 +15,23 @@ from ipam.shared.schemas import (
     BulkDeleteResponse,
     BulkUpdateResponse,
 )
-from ipam.vrf.command.commands import (
+from ipam.vrf.command import (
     BulkCreateVRFsCommand,
+    BulkCreateVRFsHandler,
     BulkDeleteVRFsCommand,
+    BulkDeleteVRFsHandler,
     BulkUpdateVRFItem,
     BulkUpdateVRFsCommand,
-    CreateVRFCommand,
-    DeleteVRFCommand,
-    UpdateVRFCommand,
-)
-from ipam.vrf.command.handlers import (
-    BulkCreateVRFsHandler,
-    BulkDeleteVRFsHandler,
     BulkUpdateVRFsHandler,
+    CreateVRFCommand,
     CreateVRFHandler,
+    DeleteVRFCommand,
     DeleteVRFHandler,
+    UpdateVRFCommand,
     UpdateVRFHandler,
 )
-from ipam.vrf.infra.repository import PostgresVRFReadModelRepository
-from ipam.vrf.query.handlers import GetVRFHandler, ListVRFsHandler
-from ipam.vrf.query.queries import GetVRFQuery, ListVRFsQuery
+from ipam.vrf.infra import PostgresVRFReadModelRepository
+from ipam.vrf.query import GetVRFHandler, GetVRFQuery, ListVRFsHandler, ListVRFsQuery
 from ipam.vrf.router.schemas import (
     BulkUpdateVRFItem as BulkUpdateVRFItemSchema,
 )
@@ -96,6 +95,7 @@ async def create_vrf(
     body: CreateVRFRequest,
     request: Request,
 ) -> VRFResponse:
+    """Create a new VRF."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -120,6 +120,7 @@ async def list_vrfs(
     sort_dir: str = "asc",
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> VRFListResponse:
+    """List VRFs with pagination, filtering, and sorting."""
     custom_field_filters = json.loads(custom_fields) if custom_fields else None
     items, total = await query_bus.dispatch(
         ListVRFsQuery(
@@ -150,6 +151,7 @@ async def bulk_update_vrfs(
     body: list[BulkUpdateVRFItemSchema],
     request: Request,
 ) -> BulkUpdateResponse:
+    """Bulk update multiple VRFs."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
@@ -166,6 +168,7 @@ async def bulk_delete_vrfs(
     body: BulkDeleteRequest,
     request: Request,
 ) -> BulkDeleteResponse:
+    """Bulk delete multiple VRFs by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteVRFsCommand(ids=body.ids))
@@ -178,6 +181,7 @@ async def get_vrf(
     vrf_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> VRFResponse:
+    """Retrieve a single VRF by ID."""
     result = await query_bus.dispatch(GetVRFQuery(vrf_id=vrf_id))
     return VRFResponse(**result.model_dump())
 
@@ -188,6 +192,7 @@ async def update_vrf(
     body: UpdateVRFRequest,
     request: Request,
 ) -> VRFResponse:
+    """Partially update a VRF."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -202,6 +207,7 @@ async def delete_vrf(
     vrf_id: UUID,
     request: Request,
 ) -> None:
+    """Delete a VRF by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteVRFCommand(vrf_id=vrf_id))
@@ -217,6 +223,7 @@ async def bulk_create_vrfs(
     body: list[CreateVRFRequest],
     request: Request,
 ) -> BulkCreateResponse:
+    """Bulk create multiple VRFs."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(BulkCreateVRFsCommand(items=[CreateVRFCommand(**i.model_dump()) for i in body]))

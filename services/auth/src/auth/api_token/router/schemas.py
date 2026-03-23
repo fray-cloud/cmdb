@@ -1,3 +1,5 @@
+"""Request and response schemas for API token endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 

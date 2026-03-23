@@ -1,3 +1,5 @@
+"""Shared query utilities — base list query, read model repository ABC, and filter builder."""
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -6,7 +8,7 @@ from shared.api.filtering import FilterOperator, FilterParam
 from shared.api.sorting import SortParam
 from shared.cqrs.query import Query
 
-from ipam.ip_address.domain.ip_address import IPAddress
+from ipam.ip_address import IPAddress
 from ipam.shared.value_objects import IPAddressValue
 
 # ---------------------------------------------------------------------------
@@ -15,6 +17,8 @@ from ipam.shared.value_objects import IPAddressValue
 
 
 class BaseListQuery(Query):
+    """Base query with common pagination, filtering, and sorting parameters."""
+
     offset: int = 0
     limit: int = 50
     description_contains: str | None = None
@@ -36,6 +40,8 @@ from abc import ABC, abstractmethod  # noqa: E402
 
 
 class ReadModelRepository(ABC):
+    """Abstract base for all IPAM read model repositories."""
+
     @abstractmethod
     async def upsert_from_aggregate(self, aggregate: Any) -> None: ...
 

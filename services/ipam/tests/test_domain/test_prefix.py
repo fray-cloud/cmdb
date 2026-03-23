@@ -3,14 +3,15 @@
 from uuid import UUID, uuid4
 
 import pytest
-from ipam.prefix.domain.events import (
+from ipam.prefix import (
+    Prefix,
     PrefixCreated,
     PrefixDeleted,
+    PrefixNetwork,
+    PrefixStatus,
     PrefixStatusChanged,
     PrefixUpdated,
 )
-from ipam.prefix.domain.prefix import Prefix
-from ipam.prefix.domain.value_objects import PrefixNetwork, PrefixStatus
 from pydantic import ValidationError
 from shared.domain.exceptions import BusinessRuleViolationError
 

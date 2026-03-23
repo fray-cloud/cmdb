@@ -1,3 +1,5 @@
+"""Command handlers for Prefix aggregate write operations."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.prefix import Prefix, PrefixStatus
 from ipam.prefix.command.commands import (
     BulkCreatePrefixesCommand,
     BulkDeletePrefixesCommand,
@@ -16,12 +19,12 @@ from ipam.prefix.command.commands import (
     DeletePrefixCommand,
     UpdatePrefixCommand,
 )
-from ipam.prefix.domain.prefix import Prefix
-from ipam.prefix.domain.value_objects import PrefixStatus
 from ipam.prefix.query.read_model import PrefixReadModelRepository
 
 
 class CreatePrefixHandler(CommandHandler[UUID]):
+    """Handle creating a new prefix and persisting its events."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -33,6 +36,7 @@ class CreatePrefixHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreatePrefixCommand) -> UUID:
+        """Create a prefix, store events, update read model, and publish to Kafka."""
         prefix = Prefix.create(
             network=command.network,
             vrf_id=command.vrf_id,
@@ -52,6 +56,8 @@ class CreatePrefixHandler(CommandHandler[UUID]):
 
 
 class UpdatePrefixHandler(CommandHandler[None]):
+    """Handle updating an existing prefix's mutable fields."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -63,6 +69,7 @@ class UpdatePrefixHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdatePrefixCommand) -> None:
+        """Load the prefix, apply updates, and persist new events."""
         prefix = await self._event_store.load_aggregate(Prefix, command.prefix_id)
         if prefix is None:
             raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
@@ -85,6 +92,8 @@ class UpdatePrefixHandler(CommandHandler[None]):
 
 
 class ChangePrefixStatusHandler(CommandHandler[None]):
+    """Handle changing the lifecycle status of a prefix."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -96,6 +105,7 @@ class ChangePrefixStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangePrefixStatusCommand) -> None:
+        """Transition the prefix to the requested status."""
         prefix = await self._event_store.load_aggregate(Prefix, command.prefix_id)
         if prefix is None:
             raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
@@ -111,6 +121,8 @@ class ChangePrefixStatusHandler(CommandHandler[None]):
 
 
 class DeletePrefixHandler(CommandHandler[None]):
+    """Handle soft-deleting a prefix."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -122,6 +134,7 @@ class DeletePrefixHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeletePrefixCommand) -> None:
+        """Mark the prefix as deleted and publish the deletion event."""
         prefix = await self._event_store.load_aggregate(Prefix, command.prefix_id)
         if prefix is None:
             raise EntityNotFoundError(f"Prefix {command.prefix_id} not found")
@@ -137,6 +150,8 @@ class DeletePrefixHandler(CommandHandler[None]):
 
 
 class BulkCreatePrefixesHandler(CommandHandler[list[UUID]]):
+    """Handle creating multiple prefixes in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -148,6 +163,7 @@ class BulkCreatePrefixesHandler(CommandHandler[list[UUID]]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkCreatePrefixesCommand) -> list[UUID]:
+        """Create each prefix, persist events, and return all new IDs."""
         results: list[UUID] = []
         all_events: list = []
         for item in command.items:
@@ -172,6 +188,8 @@ class BulkCreatePrefixesHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdatePrefixesHandler(CommandHandler[int]):
+    """Handle updating multiple prefixes in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -183,6 +201,7 @@ class BulkUpdatePrefixesHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkUpdatePrefixesCommand) -> int:
+        """Apply updates to each prefix and return the count of updated items."""
         all_events: list = []
         for item in command.items:
             prefix = await self._event_store.load_aggregate(Prefix, item.prefix_id)
@@ -207,6 +226,8 @@ class BulkUpdatePrefixesHandler(CommandHandler[int]):
 
 
 class BulkDeletePrefixesHandler(CommandHandler[int]):
+    """Handle deleting multiple prefixes in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -218,6 +239,7 @@ class BulkDeletePrefixesHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkDeletePrefixesCommand) -> int:
+        """Delete each prefix and return the count of deleted items."""
         all_events: list = []
         for agg_id in command.ids:
             prefix = await self._event_store.load_aggregate(Prefix, agg_id)

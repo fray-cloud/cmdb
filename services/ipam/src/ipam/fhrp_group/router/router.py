@@ -1,3 +1,5 @@
+"""FHRP Group REST API router — CRUD and bulk endpoints."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,26 +9,23 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.fhrp_group.command.commands import (
+from ipam.fhrp_group.command import (
     BulkCreateFHRPGroupsCommand,
+    BulkCreateFHRPGroupsHandler,
     BulkDeleteFHRPGroupsCommand,
+    BulkDeleteFHRPGroupsHandler,
     BulkUpdateFHRPGroupItem,
     BulkUpdateFHRPGroupsCommand,
-    CreateFHRPGroupCommand,
-    DeleteFHRPGroupCommand,
-    UpdateFHRPGroupCommand,
-)
-from ipam.fhrp_group.command.handlers import (
-    BulkCreateFHRPGroupsHandler,
-    BulkDeleteFHRPGroupsHandler,
     BulkUpdateFHRPGroupsHandler,
+    CreateFHRPGroupCommand,
     CreateFHRPGroupHandler,
+    DeleteFHRPGroupCommand,
     DeleteFHRPGroupHandler,
+    UpdateFHRPGroupCommand,
     UpdateFHRPGroupHandler,
 )
-from ipam.fhrp_group.infra.repository import PostgresFHRPGroupReadModelRepository
-from ipam.fhrp_group.query.handlers import GetFHRPGroupHandler, ListFHRPGroupsHandler
-from ipam.fhrp_group.query.queries import GetFHRPGroupQuery, ListFHRPGroupsQuery
+from ipam.fhrp_group.infra import PostgresFHRPGroupReadModelRepository
+from ipam.fhrp_group.query import GetFHRPGroupHandler, GetFHRPGroupQuery, ListFHRPGroupsHandler, ListFHRPGroupsQuery
 from ipam.fhrp_group.router.schemas import (
     BulkUpdateFHRPGroupItem as BulkUpdateFHRPGroupItemSchema,
 )

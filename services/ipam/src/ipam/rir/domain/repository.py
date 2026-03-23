@@ -1,3 +1,5 @@
+"""RIR repository interface — abstract persistence contract for RIR aggregates."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
@@ -5,6 +7,8 @@ from ipam.rir.domain.rir import RIR
 
 
 class RIRRepository(ABC):
+    """Abstract repository defining persistence operations for RIR aggregates."""
+
     @abstractmethod
     async def find_by_id(self, rir_id: UUID) -> RIR | None: ...
 

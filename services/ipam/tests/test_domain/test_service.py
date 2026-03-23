@@ -3,9 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from ipam.service_entity.domain.events import ServiceCreated, ServiceDeleted, ServiceUpdated
-from ipam.service_entity.domain.service import Service
-from ipam.service_entity.domain.value_objects import ServiceProtocol
+from ipam.service_entity import Service, ServiceCreated, ServiceDeleted, ServiceProtocol, ServiceUpdated
 from shared.domain.exceptions import BusinessRuleViolationError
 
 

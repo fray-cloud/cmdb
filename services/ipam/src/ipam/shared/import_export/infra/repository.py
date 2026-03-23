@@ -1,3 +1,5 @@
+"""Export template PostgreSQL repository — CRUD for Jinja2 export templates."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -9,6 +11,8 @@ from ipam.shared.import_export.infra.models import ExportTemplateModel
 
 
 class TemplateRepository:
+    """PostgreSQL-backed repository for export template CRUD operations."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 

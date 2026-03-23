@@ -1,3 +1,5 @@
+"""User REST API endpoints for CRUD and role assignment."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
@@ -5,15 +7,22 @@ from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.role.domain.repository import RoleRepository
-from auth.role.infra.repository import PostgresRoleRepository
+from auth.role import RoleRepository
+from auth.role.infra import PostgresRoleRepository
 from auth.shared.dependencies import get_current_user
-from auth.user.command.commands import AssignRoleCommand, ChangePasswordCommand, RegisterUserCommand, RemoveRoleCommand
-from auth.user.command.handlers import AssignRoleHandler, ChangePasswordHandler, RegisterUserHandler, RemoveRoleHandler
-from auth.user.domain.repository import UserRepository
-from auth.user.infra.repository import PostgresUserRepository
-from auth.user.query.handlers import GetUserHandler, ListUsersHandler
-from auth.user.query.queries import GetUserQuery, ListUsersQuery
+from auth.user.command import (
+    AssignRoleCommand,
+    AssignRoleHandler,
+    ChangePasswordCommand,
+    ChangePasswordHandler,
+    RegisterUserCommand,
+    RegisterUserHandler,
+    RemoveRoleCommand,
+    RemoveRoleHandler,
+)
+from auth.user.domain import UserRepository
+from auth.user.infra import PostgresUserRepository
+from auth.user.query import GetUserHandler, GetUserQuery, ListUsersHandler, ListUsersQuery
 from auth.user.router.schemas import AssignRoleRequest, UserListResponse, UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -84,6 +93,7 @@ async def list_users(
     params: OffsetParams = Depends(),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> UserListResponse:
+    """List users for the current tenant with pagination."""
     items, total = await query_bus.dispatch(
         ListUsersQuery(
             tenant_id=current_user["tenant_id"],
@@ -105,6 +115,7 @@ async def get_user(
     _current_user: dict = Depends(get_current_user),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> UserResponse:
+    """Retrieve a single user by ID."""
     result = await query_bus.dispatch(GetUserQuery(user_id=user_id))
     return UserResponse(**result.model_dump())
 
@@ -119,6 +130,7 @@ async def assign_role(
     _current_user: dict = Depends(get_current_user),  # noqa: B008
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
 ) -> None:
+    """Assign a role to a user."""
     await command_bus.dispatch(AssignRoleCommand(user_id=user_id, role_id=body.role_id))
 
 
@@ -132,4 +144,5 @@ async def remove_role(
     _current_user: dict = Depends(get_current_user),  # noqa: B008
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
 ) -> None:
+    """Remove a role from a user."""
     await command_bus.dispatch(RemoveRoleCommand(user_id=user_id, role_id=role_id))

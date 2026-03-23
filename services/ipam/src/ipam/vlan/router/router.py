@@ -1,3 +1,5 @@
+"""FastAPI router for VLAN CRUD endpoints."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -14,28 +16,25 @@ from ipam.shared.schemas import (
     BulkUpdateResponse,
     ChangeStatusRequest,
 )
-from ipam.vlan.command.commands import (
+from ipam.vlan.command import (
     BulkCreateVLANsCommand,
+    BulkCreateVLANsHandler,
     BulkDeleteVLANsCommand,
+    BulkDeleteVLANsHandler,
     BulkUpdateVLANItem,
     BulkUpdateVLANsCommand,
-    ChangeVLANStatusCommand,
-    CreateVLANCommand,
-    DeleteVLANCommand,
-    UpdateVLANCommand,
-)
-from ipam.vlan.command.handlers import (
-    BulkCreateVLANsHandler,
-    BulkDeleteVLANsHandler,
     BulkUpdateVLANsHandler,
+    ChangeVLANStatusCommand,
     ChangeVLANStatusHandler,
+    CreateVLANCommand,
     CreateVLANHandler,
+    DeleteVLANCommand,
     DeleteVLANHandler,
+    UpdateVLANCommand,
     UpdateVLANHandler,
 )
-from ipam.vlan.infra.repository import PostgresVLANReadModelRepository
-from ipam.vlan.query.handlers import GetVLANHandler, ListVLANsHandler
-from ipam.vlan.query.queries import GetVLANQuery, ListVLANsQuery
+from ipam.vlan.infra import PostgresVLANReadModelRepository
+from ipam.vlan.query import GetVLANHandler, GetVLANQuery, ListVLANsHandler, ListVLANsQuery
 from ipam.vlan.router.schemas import (
     BulkUpdateVLANItem as BulkUpdateVLANItemSchema,
 )
@@ -112,6 +111,7 @@ async def create_vlan(
     body: CreateVLANRequest,
     request: Request,
 ) -> VLANResponse:
+    """Create a new VLAN."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -139,6 +139,7 @@ async def list_vlans(
     sort_dir: str = "asc",
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> VLANListResponse:
+    """List VLANs with pagination, filtering, and sorting."""
     custom_field_filters = json.loads(custom_fields) if custom_fields else None
     items, total = await query_bus.dispatch(
         ListVLANsQuery(
@@ -172,6 +173,7 @@ async def bulk_update_vlans(
     body: list[BulkUpdateVLANItemSchema],
     request: Request,
 ) -> BulkUpdateResponse:
+    """Bulk update multiple VLANs."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
@@ -188,6 +190,7 @@ async def bulk_delete_vlans(
     body: BulkDeleteRequest,
     request: Request,
 ) -> BulkDeleteResponse:
+    """Bulk delete multiple VLANs by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteVLANsCommand(ids=body.ids))
@@ -200,6 +203,7 @@ async def get_vlan(
     vlan_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> VLANResponse:
+    """Retrieve a single VLAN by ID."""
     result = await query_bus.dispatch(GetVLANQuery(vlan_id=vlan_id))
     return VLANResponse(**result.model_dump())
 
@@ -210,6 +214,7 @@ async def update_vlan(
     body: UpdateVLANRequest,
     request: Request,
 ) -> VLANResponse:
+    """Partially update a VLAN."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -225,6 +230,7 @@ async def change_vlan_status(
     body: ChangeStatusRequest,
     request: Request,
 ) -> VLANResponse:
+    """Change the lifecycle status of a VLAN."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -239,6 +245,7 @@ async def delete_vlan(
     vlan_id: UUID,
     request: Request,
 ) -> None:
+    """Delete a VLAN by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteVLANCommand(vlan_id=vlan_id))
@@ -254,6 +261,7 @@ async def bulk_create_vlans(
     body: list[CreateVLANRequest],
     request: Request,
 ) -> BulkCreateResponse:
+    """Bulk create multiple VLANs."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(BulkCreateVLANsCommand(items=[CreateVLANCommand(**i.model_dump()) for i in body]))

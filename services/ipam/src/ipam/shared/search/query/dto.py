@@ -1,3 +1,5 @@
+"""Global search data transfer objects for query results."""
+
 from uuid import UUID
 
 from pydantic import BaseModel

@@ -1,3 +1,5 @@
+"""Security implementations for password hashing and JWT token management."""
+
 import asyncio
 import hashlib
 from datetime import UTC, datetime, timedelta
@@ -7,18 +9,22 @@ import bcrypt
 import jwt
 
 from auth.shared.config import Settings
-from auth.shared.domain.services import PasswordService
+from auth.shared.domain import PasswordService
 
 
 class BcryptPasswordService(PasswordService):
+    """PasswordService implementation using bcrypt for hashing."""
+
     def __init__(self, rounds: int = 12) -> None:
         self._rounds = rounds
 
     def hash(self, password: str) -> str:
+        """Hash a plaintext password using bcrypt."""
         salt = bcrypt.gensalt(rounds=self._rounds)
         return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
     def verify(self, password: str, hashed: str) -> bool:
+        """Verify a plaintext password against a bcrypt hash."""
         return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
     async def hash_async(self, password: str) -> str:
@@ -29,6 +35,8 @@ class BcryptPasswordService(PasswordService):
 
 
 class JWTService:
+    """Manages RS256 JWT token creation, decoding, and JWKS endpoint data."""
+
     def __init__(self, settings: Settings) -> None:
         self._private_key = settings.rsa_private_key
         self._public_key = settings.rsa_public_key
@@ -42,6 +50,7 @@ class JWTService:
         tenant_id: UUID,
         roles: list[str],
     ) -> str:
+        """Create a short-lived JWT access token."""
         now = datetime.now(UTC)
         payload = {
             "sub": str(user_id),

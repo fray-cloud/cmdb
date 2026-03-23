@@ -1,3 +1,5 @@
+"""Service event projector — handles domain events to update the Service read model."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

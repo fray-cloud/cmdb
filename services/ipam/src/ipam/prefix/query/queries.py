@@ -1,3 +1,5 @@
+"""Query definitions for Prefix read operations."""
+
 from uuid import UUID
 
 from shared.cqrs.query import Query

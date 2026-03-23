@@ -1,19 +1,24 @@
+"""Query handlers for retrieving roles and checking permissions."""
+
 from pydantic import BaseModel
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
 
-from auth.group.domain.repository import GroupRepository
-from auth.role.domain.repository import RoleRepository
+from auth.group import GroupRepository
+from auth.role.domain import RoleRepository
 from auth.role.query.dto import RoleDTO
-from auth.shared.domain.services import PermissionChecker
-from auth.user.domain.repository import UserRepository
+from auth.shared.domain import PermissionChecker
+from auth.user import UserRepository
 
 
 class GetRoleHandler(QueryHandler[RoleDTO]):
+    """Handles fetching a single role by ID."""
+
     def __init__(self, repository: RoleRepository) -> None:
         self._repository = repository
 
     async def handle(self, query: Query) -> RoleDTO:
+        """Retrieve a role by ID or raise EntityNotFoundError."""
         role = await self._repository.find_by_id(query.role_id)
         if role is None:
             raise EntityNotFoundError(f"Role {query.role_id} not found")
@@ -30,10 +35,13 @@ class GetRoleHandler(QueryHandler[RoleDTO]):
 
 
 class ListRolesHandler(QueryHandler[tuple[list[RoleDTO], int]]):
+    """Handles paginated listing of roles within a tenant."""
+
     def __init__(self, repository: RoleRepository) -> None:
         self._repository = repository
 
     async def handle(self, query: Query) -> tuple[list[RoleDTO], int]:
+        """Return a paginated list of roles and total count."""
         roles, total = await self._repository.find_all(
             query.tenant_id,
             offset=query.offset,
@@ -60,6 +68,8 @@ class PermissionCheckDTO(BaseModel):
 
 
 class CheckPermissionHandler(QueryHandler[PermissionCheckDTO]):
+    """Handles permission checks by aggregating user, role, and group permissions."""
+
     def __init__(
         self,
         user_repository: UserRepository,
@@ -72,6 +82,7 @@ class CheckPermissionHandler(QueryHandler[PermissionCheckDTO]):
         self._checker = PermissionChecker()
 
     async def handle(self, query: Query) -> PermissionCheckDTO:
+        """Check whether a user has the specified permission."""
         user = await self._user_repository.find_by_id(query.user_id)
         if user is None:
             return PermissionCheckDTO(allowed=False)

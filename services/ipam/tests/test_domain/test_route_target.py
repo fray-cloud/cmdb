@@ -3,8 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from ipam.route_target.domain.events import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
-from ipam.route_target.domain.route_target import RouteTarget
+from ipam.route_target import RouteTarget, RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
 from pydantic import ValidationError
 from shared.domain.exceptions import BusinessRuleViolationError
 

@@ -1,3 +1,5 @@
+"""VLAN aggregate root for virtual LAN management."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -11,6 +13,8 @@ from ipam.vlan.domain.value_objects import VLANId, VLANStatus
 
 
 class VLAN(AggregateRoot):
+    """Aggregate root representing a virtual LAN within an optional VLAN group."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.vid: VLANId | None = None
@@ -38,6 +42,7 @@ class VLAN(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> VLAN:
+        """Create a new VLAN aggregate with a validated VLAN ID."""
         vlan = cls()
         vlan.apply_event(
             VLANCreated(
@@ -65,6 +70,7 @@ class VLAN(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable fields of the VLAN."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted VLAN")
         self.apply_event(
@@ -80,6 +86,7 @@ class VLAN(AggregateRoot):
         )
 
     def change_status(self, new_status: VLANStatus) -> None:
+        """Transition the VLAN to a new lifecycle status."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot change status of a deleted VLAN")
         if self.status == new_status:
@@ -94,6 +101,7 @@ class VLAN(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the VLAN by emitting a VLANDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("VLAN is already deleted")
         self.apply_event(

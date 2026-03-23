@@ -1,3 +1,5 @@
+"""Command handlers for VLAN aggregate write operations."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.vlan import VLAN, VLANStatus
 from ipam.vlan.command.commands import (
     BulkCreateVLANsCommand,
     BulkDeleteVLANsCommand,
@@ -16,12 +19,12 @@ from ipam.vlan.command.commands import (
     DeleteVLANCommand,
     UpdateVLANCommand,
 )
-from ipam.vlan.domain.value_objects import VLANStatus
-from ipam.vlan.domain.vlan import VLAN
 from ipam.vlan.query.read_model import VLANReadModelRepository
 
 
 class CreateVLANHandler(CommandHandler[UUID]):
+    """Handle creating a new VLAN."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -33,6 +36,7 @@ class CreateVLANHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateVLANCommand) -> UUID:
+        """Create a VLAN, store events, update read model, and publish to Kafka."""
         vlan = VLAN.create(
             vid=command.vid,
             name=command.name,
@@ -52,6 +56,8 @@ class CreateVLANHandler(CommandHandler[UUID]):
 
 
 class UpdateVLANHandler(CommandHandler[None]):
+    """Handle updating an existing VLAN."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -63,6 +69,7 @@ class UpdateVLANHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateVLANCommand) -> None:
+        """Load the VLAN, apply updates, and persist new events."""
         vlan = await self._event_store.load_aggregate(VLAN, command.vlan_id)
         if vlan is None:
             raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
@@ -84,6 +91,8 @@ class UpdateVLANHandler(CommandHandler[None]):
 
 
 class ChangeVLANStatusHandler(CommandHandler[None]):
+    """Handle changing the lifecycle status of a VLAN."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -95,6 +104,7 @@ class ChangeVLANStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangeVLANStatusCommand) -> None:
+        """Transition the VLAN to the requested status."""
         vlan = await self._event_store.load_aggregate(VLAN, command.vlan_id)
         if vlan is None:
             raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
@@ -110,6 +120,8 @@ class ChangeVLANStatusHandler(CommandHandler[None]):
 
 
 class DeleteVLANHandler(CommandHandler[None]):
+    """Handle soft-deleting a VLAN."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -121,6 +133,7 @@ class DeleteVLANHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteVLANCommand) -> None:
+        """Mark the VLAN as deleted and publish the deletion event."""
         vlan = await self._event_store.load_aggregate(VLAN, command.vlan_id)
         if vlan is None:
             raise EntityNotFoundError(f"VLAN {command.vlan_id} not found")
@@ -136,6 +149,8 @@ class DeleteVLANHandler(CommandHandler[None]):
 
 
 class BulkCreateVLANsHandler(CommandHandler[list[UUID]]):
+    """Handle creating multiple VLANs in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -147,6 +162,7 @@ class BulkCreateVLANsHandler(CommandHandler[list[UUID]]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkCreateVLANsCommand) -> list[UUID]:
+        """Create each VLAN, persist events, and return all new IDs."""
         results: list[UUID] = []
         all_events: list = []
         for item in command.items:
@@ -171,6 +187,8 @@ class BulkCreateVLANsHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateVLANsHandler(CommandHandler[int]):
+    """Handle updating multiple VLANs in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -182,6 +200,7 @@ class BulkUpdateVLANsHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkUpdateVLANsCommand) -> int:
+        """Apply updates to each VLAN and return the count of updated items."""
         all_events: list = []
         for item in command.items:
             vlan = await self._event_store.load_aggregate(VLAN, item.vlan_id)
@@ -205,6 +224,8 @@ class BulkUpdateVLANsHandler(CommandHandler[int]):
 
 
 class BulkDeleteVLANsHandler(CommandHandler[int]):
+    """Handle deleting multiple VLANs in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -216,6 +237,7 @@ class BulkDeleteVLANsHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkDeleteVLANsCommand) -> int:
+        """Delete each VLAN and return the count of deleted items."""
         all_events: list = []
         for agg_id in command.ids:
             vlan = await self._event_store.load_aggregate(VLAN, agg_id)

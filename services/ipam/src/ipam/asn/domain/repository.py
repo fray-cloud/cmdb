@@ -1,3 +1,5 @@
+"""ASN repository interface — abstract persistence contract for ASN aggregates."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
@@ -5,6 +7,8 @@ from ipam.asn.domain.asn import ASN
 
 
 class ASNRepository(ABC):
+    """Abstract repository defining persistence operations for ASN aggregates."""
+
     @abstractmethod
     async def find_by_id(self, asn_id: UUID) -> ASN | None: ...
 

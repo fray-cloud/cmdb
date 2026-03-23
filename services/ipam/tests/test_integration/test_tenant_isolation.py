@@ -9,13 +9,12 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from ipam.prefix.command.commands import CreatePrefixCommand
+from ipam.prefix import PrefixCreated
+from ipam.prefix.command import CreatePrefixCommand
 from ipam.prefix.command.handlers import CreatePrefixHandler
-from ipam.prefix.domain.events import PrefixCreated
-from ipam.prefix.infra.repository import PostgresPrefixReadModelRepository
-from ipam.prefix.query.handlers import ListPrefixesHandler
-from ipam.prefix.query.queries import ListPrefixesQuery
-from ipam.shared.models_base import IPAMBase
+from ipam.prefix.infra import PostgresPrefixReadModelRepository
+from ipam.prefix.query import ListPrefixesHandler, ListPrefixesQuery
+from ipam.shared import IPAMBase
 from shared.event.models import EventStoreBase
 from shared.event.pg_store import PostgresEventStore
 from sqlalchemy import text

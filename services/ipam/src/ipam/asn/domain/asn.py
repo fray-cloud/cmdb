@@ -1,3 +1,5 @@
+"""ASN aggregate root — Autonomous System Number domain entity."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -11,6 +13,8 @@ from ipam.asn.domain.value_objects import ASNumber
 
 
 class ASN(AggregateRoot):
+    """Autonomous System Number aggregate managing ASN lifecycle via event sourcing."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.asn: ASNumber | None = None
@@ -32,6 +36,7 @@ class ASN(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> ASN:
+        """Create a new ASN aggregate and emit an ASNCreated event."""
         asn_vo = ASNumber(asn=asn)
         aggregate = cls()
         aggregate.apply_event(
@@ -56,6 +61,7 @@ class ASN(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable ASN fields and emit an ASNUpdated event."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted ASN")
         self.apply_event(
@@ -70,6 +76,7 @@ class ASN(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the ASN and emit an ASNDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("ASN is already deleted")
         self.apply_event(

@@ -1,3 +1,5 @@
+"""SQLAlchemy read model for the Prefix aggregate."""
+
 from datetime import datetime
 from uuid import UUID
 

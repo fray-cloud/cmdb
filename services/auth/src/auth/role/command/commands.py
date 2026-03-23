@@ -1,3 +1,5 @@
+"""Role command definitions for CQRS write operations."""
+
 from uuid import UUID
 
 from shared.cqrs.command import Command

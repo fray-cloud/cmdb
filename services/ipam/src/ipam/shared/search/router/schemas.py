@@ -1,3 +1,5 @@
+"""Global search REST API response schemas."""
+
 from uuid import UUID
 
 from pydantic import BaseModel

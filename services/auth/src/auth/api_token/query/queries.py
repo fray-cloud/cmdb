@@ -1,3 +1,5 @@
+"""API token query definitions for CQRS read operations."""
+
 from uuid import UUID
 
 from shared.cqrs.query import Query

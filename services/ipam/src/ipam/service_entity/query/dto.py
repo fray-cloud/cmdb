@@ -1,3 +1,5 @@
+"""Service data transfer objects for query results."""
+
 from datetime import datetime
 from uuid import UUID
 

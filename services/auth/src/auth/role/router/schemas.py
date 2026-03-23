@@ -1,3 +1,5 @@
+"""Request and response schemas for role endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 

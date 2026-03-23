@@ -7,6 +7,7 @@ Run with: uv run --package cmdb-ipam pytest services/ipam/tests/ -m integration
 from __future__ import annotations
 
 import pytest
+from ipam.prefix import PrefixCreated, PrefixDeleted, PrefixUpdated
 from ipam.prefix.command.commands import (
     CreatePrefixCommand,
     DeletePrefixCommand,
@@ -17,11 +18,9 @@ from ipam.prefix.command.handlers import (
     DeletePrefixHandler,
     UpdatePrefixHandler,
 )
-from ipam.prefix.domain.events import PrefixCreated, PrefixDeleted, PrefixUpdated
-from ipam.prefix.infra.repository import PostgresPrefixReadModelRepository
-from ipam.prefix.query.handlers import GetPrefixHandler, ListPrefixesHandler
-from ipam.prefix.query.queries import ListPrefixesQuery
-from ipam.shared.models_base import IPAMBase
+from ipam.prefix.infra import PostgresPrefixReadModelRepository
+from ipam.prefix.query import GetPrefixHandler, ListPrefixesHandler, ListPrefixesQuery
+from ipam.shared import IPAMBase
 from shared.event.models import EventStoreBase
 from shared.event.pg_store import PostgresEventStore
 from sqlalchemy import text

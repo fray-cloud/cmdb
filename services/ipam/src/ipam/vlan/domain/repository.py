@@ -1,3 +1,5 @@
+"""Abstract repository interface for the VLAN aggregate."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
@@ -5,6 +7,8 @@ from ipam.vlan.domain.vlan import VLAN
 
 
 class VLANRepository(ABC):
+    """Domain repository interface for persisting and retrieving VLAN aggregates."""
+
     @abstractmethod
     async def find_by_id(self, vlan_id: UUID) -> VLAN | None: ...
 

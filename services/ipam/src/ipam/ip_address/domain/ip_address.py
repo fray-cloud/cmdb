@@ -1,3 +1,5 @@
+"""IPAddress aggregate root for individual IP address management."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -17,6 +19,8 @@ from ipam.shared.value_objects import IPAddressValue
 
 
 class IPAddress(AggregateRoot):
+    """Aggregate root representing a single IP address within a VRF scope."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.address: IPAddressValue | None = None
@@ -42,6 +46,7 @@ class IPAddress(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> IPAddress:
+        """Create a new IPAddress aggregate with a validated address."""
         ip = cls()
         ip.apply_event(
             IPAddressCreated(
@@ -67,6 +72,7 @@ class IPAddress(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable fields of the IP address."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted IP address")
         self.apply_event(
@@ -81,6 +87,7 @@ class IPAddress(AggregateRoot):
         )
 
     def change_status(self, new_status: IPAddressStatus) -> None:
+        """Transition the IP address to a new lifecycle status."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot change status of a deleted IP address")
         if self.status == new_status:
@@ -95,6 +102,7 @@ class IPAddress(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the IP address by emitting an IPAddressDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("IP address is already deleted")
         self.apply_event(

@@ -1,13 +1,13 @@
 """Unit tests for IPAM domain value objects."""
 
 import pytest
-from ipam.asn.domain.value_objects import ASNumber
-from ipam.fhrp_group.domain.value_objects import FHRPAuthType, FHRPProtocol
-from ipam.ip_address.domain.value_objects import IPAddressStatus
-from ipam.ip_range.domain.value_objects import IPRangeStatus
-from ipam.prefix.domain.value_objects import PrefixNetwork, PrefixStatus
-from ipam.shared.value_objects import IPAddressValue, RouteDistinguisher
-from ipam.vlan.domain.value_objects import VLANId, VLANStatus
+from ipam.asn import ASNumber
+from ipam.fhrp_group import FHRPAuthType, FHRPProtocol
+from ipam.ip_address import IPAddressStatus
+from ipam.ip_range import IPRangeStatus
+from ipam.prefix import PrefixNetwork, PrefixStatus
+from ipam.shared import IPAddressValue, RouteDistinguisher
+from ipam.vlan import VLANId, VLANStatus
 from pydantic import ValidationError
 
 

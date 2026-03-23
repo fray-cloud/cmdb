@@ -1,3 +1,5 @@
+"""RIR domain events — RIRCreated, RIRUpdated, RIRDeleted."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

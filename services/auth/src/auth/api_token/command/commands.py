@@ -1,3 +1,5 @@
+"""API token command definitions for CQRS write operations."""
+
 from datetime import datetime
 from uuid import UUID
 

@@ -1,3 +1,5 @@
+"""PostgreSQL implementation of the IPAddress read model repository."""
+
 from __future__ import annotations
 
 import ipaddress
@@ -16,6 +18,8 @@ from ipam.shared.infra.query_helpers import _apply_advanced_filters
 
 
 class PostgresIPAddressReadModelRepository(IPAddressReadModelRepository):
+    """PostgreSQL-backed read model repository for IP address queries and projections."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -36,6 +40,7 @@ class PostgresIPAddressReadModelRepository(IPAddressReadModelRepository):
         await self._session.flush()
 
     async def find_by_id(self, entity_id: UUID) -> dict | None:
+        """Return an IP address dict by primary key, or None if not found or deleted."""
         model = await self._session.get(IPAddressReadModel, entity_id)
         if model is None or model.is_deleted:
             return None
@@ -51,6 +56,7 @@ class PostgresIPAddressReadModelRepository(IPAddressReadModelRepository):
         tag_slugs: list[str] | None = None,
         custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
+        """Return a paginated list of IP address records matching the given filters."""
         base = select(IPAddressReadModel).where(IPAddressReadModel.is_deleted == sa.false())
         filtered = _apply_advanced_filters(
             base,

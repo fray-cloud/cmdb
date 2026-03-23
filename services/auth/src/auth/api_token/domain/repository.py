@@ -1,3 +1,5 @@
+"""API token repository interface for persistence abstraction."""
+
 from abc import abstractmethod
 from uuid import UUID
 
@@ -7,6 +9,8 @@ from auth.api_token.domain.api_token import APIToken
 
 
 class APITokenRepository(Repository[APIToken]):
+    """Abstract repository defining persistence operations for APIToken aggregates."""
+
     @abstractmethod
     async def find_by_key_hash(self, key_hash: str) -> APIToken | None: ...
 

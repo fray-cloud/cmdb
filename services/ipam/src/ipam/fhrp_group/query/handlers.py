@@ -1,3 +1,5 @@
+"""FHRP Group query handlers — retrieve single or listed FHRP Group read models."""
+
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
 
@@ -7,6 +9,8 @@ from ipam.shared.query_utils import build_common_filters
 
 
 class GetFHRPGroupHandler(QueryHandler[FHRPGroupDTO]):
+    """Handle GetFHRPGroupQuery by fetching a single FHRP Group from the read model."""
+
     def __init__(self, read_model_repo: FHRPGroupReadModelRepository) -> None:
         self._repo = read_model_repo
 
@@ -18,6 +22,8 @@ class GetFHRPGroupHandler(QueryHandler[FHRPGroupDTO]):
 
 
 class ListFHRPGroupsHandler(QueryHandler[tuple[list[FHRPGroupDTO], int]]):
+    """Handle ListFHRPGroupsQuery by returning a paginated list of FHRP Groups."""
+
     def __init__(self, read_model_repo: FHRPGroupReadModelRepository) -> None:
         self._repo = read_model_repo
 

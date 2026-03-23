@@ -1,3 +1,5 @@
+"""VRF aggregate root for Virtual Routing and Forwarding instance management."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -11,6 +13,8 @@ from ipam.vrf.domain.events import VRFCreated, VRFDeleted, VRFUpdated
 
 
 class VRF(AggregateRoot):
+    """Aggregate root representing a Virtual Routing and Forwarding instance."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.name: str = ""
@@ -36,6 +40,7 @@ class VRF(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> VRF:
+        """Create a new VRF aggregate with a validated route distinguisher."""
         vrf = cls()
         vrf.apply_event(
             VRFCreated(
@@ -63,6 +68,7 @@ class VRF(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable fields of the VRF."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted VRF")
         self.apply_event(
@@ -79,6 +85,7 @@ class VRF(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the VRF by emitting a VRFDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("VRF is already deleted")
         self.apply_event(

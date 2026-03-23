@@ -1,3 +1,5 @@
+"""Export template SQLAlchemy model — Jinja2 template storage for custom exports."""
+
 from datetime import datetime
 from uuid import UUID
 

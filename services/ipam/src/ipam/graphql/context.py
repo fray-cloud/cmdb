@@ -1,39 +1,35 @@
+"""GraphQL context factory — builds query bus with all IPAM handlers per request."""
+
 from shared.cqrs.bus import QueryBus
 from starlette.requests import Request
 
-from ipam.asn.infra.repository import PostgresASNReadModelRepository
-from ipam.asn.query.handlers import GetASNHandler, ListASNsHandler
-from ipam.asn.query.queries import GetASNQuery, ListASNsQuery
-from ipam.fhrp_group.infra.repository import PostgresFHRPGroupReadModelRepository
-from ipam.fhrp_group.query.handlers import GetFHRPGroupHandler, ListFHRPGroupsHandler
-from ipam.fhrp_group.query.queries import GetFHRPGroupQuery, ListFHRPGroupsQuery
-from ipam.ip_address.infra.repository import PostgresIPAddressReadModelRepository
-from ipam.ip_address.query.handlers import GetIPAddressHandler, ListIPAddressesHandler
-from ipam.ip_address.query.queries import GetIPAddressQuery, ListIPAddressesQuery
-from ipam.ip_range.infra.repository import PostgresIPRangeReadModelRepository
-from ipam.ip_range.query.handlers import GetIPRangeHandler, ListIPRangesHandler
-from ipam.ip_range.query.queries import GetIPRangeQuery, ListIPRangesQuery
-from ipam.prefix.infra.repository import PostgresPrefixReadModelRepository
-from ipam.prefix.query.handlers import GetPrefixHandler, ListPrefixesHandler
-from ipam.prefix.query.queries import GetPrefixQuery, ListPrefixesQuery
-from ipam.rir.infra.repository import PostgresRIRReadModelRepository
-from ipam.rir.query.handlers import GetRIRHandler, ListRIRsHandler
-from ipam.rir.query.queries import GetRIRQuery, ListRIRsQuery
-from ipam.route_target.infra.repository import PostgresRouteTargetReadModelRepository
-from ipam.route_target.query.handlers import GetRouteTargetHandler, ListRouteTargetsHandler
-from ipam.route_target.query.queries import GetRouteTargetQuery, ListRouteTargetsQuery
-from ipam.service_entity.infra.repository import PostgresServiceReadModelRepository
-from ipam.service_entity.query.handlers import GetServiceHandler, ListServicesHandler
-from ipam.service_entity.query.queries import GetServiceQuery, ListServicesQuery
-from ipam.vlan.infra.repository import PostgresVLANReadModelRepository
-from ipam.vlan.query.handlers import GetVLANHandler, ListVLANsHandler
-from ipam.vlan.query.queries import GetVLANQuery, ListVLANsQuery
-from ipam.vlan_group.infra.repository import PostgresVLANGroupReadModelRepository
-from ipam.vlan_group.query.handlers import GetVLANGroupHandler, ListVLANGroupsHandler
-from ipam.vlan_group.query.queries import GetVLANGroupQuery, ListVLANGroupsQuery
-from ipam.vrf.infra.repository import PostgresVRFReadModelRepository
-from ipam.vrf.query.handlers import GetVRFHandler, ListVRFsHandler
-from ipam.vrf.query.queries import GetVRFQuery, ListVRFsQuery
+from ipam.asn.infra import PostgresASNReadModelRepository
+from ipam.asn.query import GetASNHandler, GetASNQuery, ListASNsHandler, ListASNsQuery
+from ipam.fhrp_group.infra import PostgresFHRPGroupReadModelRepository
+from ipam.fhrp_group.query import GetFHRPGroupHandler, GetFHRPGroupQuery, ListFHRPGroupsHandler, ListFHRPGroupsQuery
+from ipam.ip_address.infra import PostgresIPAddressReadModelRepository
+from ipam.ip_address.query import GetIPAddressHandler, GetIPAddressQuery, ListIPAddressesHandler, ListIPAddressesQuery
+from ipam.ip_range.infra import PostgresIPRangeReadModelRepository
+from ipam.ip_range.query import GetIPRangeHandler, GetIPRangeQuery, ListIPRangesHandler, ListIPRangesQuery
+from ipam.prefix.infra import PostgresPrefixReadModelRepository
+from ipam.prefix.query import GetPrefixHandler, GetPrefixQuery, ListPrefixesHandler, ListPrefixesQuery
+from ipam.rir.infra import PostgresRIRReadModelRepository
+from ipam.rir.query import GetRIRHandler, GetRIRQuery, ListRIRsHandler, ListRIRsQuery
+from ipam.route_target.infra import PostgresRouteTargetReadModelRepository
+from ipam.route_target.query import (
+    GetRouteTargetHandler,
+    GetRouteTargetQuery,
+    ListRouteTargetsHandler,
+    ListRouteTargetsQuery,
+)
+from ipam.service_entity.infra import PostgresServiceReadModelRepository
+from ipam.service_entity.query import GetServiceHandler, GetServiceQuery, ListServicesHandler, ListServicesQuery
+from ipam.vlan.infra import PostgresVLANReadModelRepository
+from ipam.vlan.query import GetVLANHandler, GetVLANQuery, ListVLANsHandler, ListVLANsQuery
+from ipam.vlan_group.infra import PostgresVLANGroupReadModelRepository
+from ipam.vlan_group.query import GetVLANGroupHandler, GetVLANGroupQuery, ListVLANGroupsHandler, ListVLANGroupsQuery
+from ipam.vrf.infra import PostgresVRFReadModelRepository
+from ipam.vrf.query import GetVRFHandler, GetVRFQuery, ListVRFsHandler, ListVRFsQuery
 
 
 async def get_graphql_context(request: Request) -> dict:

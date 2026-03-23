@@ -1,8 +1,12 @@
+"""Saved filter repository interface — abstract persistence contract."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
 
 class SavedFilterRepository(ABC):
+    """Abstract repository defining CRUD operations for saved filters."""
+
     @abstractmethod
     async def find_by_id(self, filter_id: UUID) -> dict | None: ...
 

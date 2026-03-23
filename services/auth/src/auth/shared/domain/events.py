@@ -1,3 +1,5 @@
+"""Auth domain event definitions published via Kafka."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

@@ -1,3 +1,5 @@
+"""Command handlers for VRF aggregate write operations."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.vrf import VRF
 from ipam.vrf.command.commands import (
     BulkCreateVRFsCommand,
     BulkDeleteVRFsCommand,
@@ -15,11 +18,12 @@ from ipam.vrf.command.commands import (
     DeleteVRFCommand,
     UpdateVRFCommand,
 )
-from ipam.vrf.domain.vrf import VRF
 from ipam.vrf.query.read_model import VRFReadModelRepository
 
 
 class CreateVRFHandler(CommandHandler[UUID]):
+    """Handle creating a new VRF."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -31,6 +35,7 @@ class CreateVRFHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateVRFCommand) -> UUID:
+        """Create a VRF, store events, update read model, and publish to Kafka."""
         vrf = VRF.create(
             name=command.name,
             rd=command.rd,
@@ -49,6 +54,8 @@ class CreateVRFHandler(CommandHandler[UUID]):
 
 
 class UpdateVRFHandler(CommandHandler[None]):
+    """Handle updating an existing VRF."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -60,6 +67,7 @@ class UpdateVRFHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateVRFCommand) -> None:
+        """Load the VRF, apply updates, and persist new events."""
         vrf = await self._event_store.load_aggregate(VRF, command.vrf_id)
         if vrf is None:
             raise EntityNotFoundError(f"VRF {command.vrf_id} not found")
@@ -82,6 +90,8 @@ class UpdateVRFHandler(CommandHandler[None]):
 
 
 class DeleteVRFHandler(CommandHandler[None]):
+    """Handle soft-deleting a VRF."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -93,6 +103,7 @@ class DeleteVRFHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteVRFCommand) -> None:
+        """Mark the VRF as deleted and publish the deletion event."""
         vrf = await self._event_store.load_aggregate(VRF, command.vrf_id)
         if vrf is None:
             raise EntityNotFoundError(f"VRF {command.vrf_id} not found")
@@ -108,6 +119,8 @@ class DeleteVRFHandler(CommandHandler[None]):
 
 
 class BulkCreateVRFsHandler(CommandHandler[list[UUID]]):
+    """Handle creating multiple VRFs in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -119,6 +132,7 @@ class BulkCreateVRFsHandler(CommandHandler[list[UUID]]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkCreateVRFsCommand) -> list[UUID]:
+        """Create each VRF, persist events, and return all new IDs."""
         results: list[UUID] = []
         all_events: list = []
         for item in command.items:
@@ -142,6 +156,8 @@ class BulkCreateVRFsHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateVRFsHandler(CommandHandler[int]):
+    """Handle updating multiple VRFs in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -153,6 +169,7 @@ class BulkUpdateVRFsHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkUpdateVRFsCommand) -> int:
+        """Apply updates to each VRF and return the count of updated items."""
         all_events: list = []
         for item in command.items:
             vrf = await self._event_store.load_aggregate(VRF, item.vrf_id)
@@ -177,6 +194,8 @@ class BulkUpdateVRFsHandler(CommandHandler[int]):
 
 
 class BulkDeleteVRFsHandler(CommandHandler[int]):
+    """Handle deleting multiple VRFs in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -188,6 +207,7 @@ class BulkDeleteVRFsHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkDeleteVRFsCommand) -> int:
+        """Delete each VRF and return the count of deleted items."""
         all_events: list = []
         for agg_id in command.ids:
             vrf = await self._event_store.load_aggregate(VRF, agg_id)

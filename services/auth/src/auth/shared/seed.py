@@ -9,12 +9,12 @@ import os
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from auth.role.domain.role import Role
-from auth.role.infra.repository import PostgresRoleRepository
-from auth.shared.domain.permission import Permission
+from auth.role import Role
+from auth.role.infra import PostgresRoleRepository
+from auth.shared.domain import Permission
 from auth.shared.security import BcryptPasswordService
-from auth.user.domain.user import User
-from auth.user.infra.repository import PostgresUserRepository
+from auth.user import User
+from auth.user.infra import PostgresUserRepository
 
 DEFAULT_ROLES = [
     {

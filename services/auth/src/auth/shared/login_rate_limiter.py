@@ -1,7 +1,11 @@
+"""Redis-backed login rate limiter to prevent brute-force attacks."""
+
 import redis.asyncio as redis
 
 
 class LoginRateLimiter:
+    """Tracks failed login attempts and applies progressive lockouts."""
+
     THRESHOLDS = [
         (5, 300),  # 5 failures -> 5 min lockout
         (10, 1800),  # 10 failures -> 30 min lockout

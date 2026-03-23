@@ -1,3 +1,5 @@
+"""Service REST API router — CRUD and bulk endpoints for network services."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,26 +9,23 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.service_entity.command.commands import (
+from ipam.service_entity.command import (
     BulkCreateServicesCommand,
+    BulkCreateServicesHandler,
     BulkDeleteServicesCommand,
+    BulkDeleteServicesHandler,
     BulkUpdateServiceItem,
     BulkUpdateServicesCommand,
-    CreateServiceCommand,
-    DeleteServiceCommand,
-    UpdateServiceCommand,
-)
-from ipam.service_entity.command.handlers import (
-    BulkCreateServicesHandler,
-    BulkDeleteServicesHandler,
     BulkUpdateServicesHandler,
+    CreateServiceCommand,
     CreateServiceHandler,
+    DeleteServiceCommand,
     DeleteServiceHandler,
+    UpdateServiceCommand,
     UpdateServiceHandler,
 )
-from ipam.service_entity.infra.repository import PostgresServiceReadModelRepository
-from ipam.service_entity.query.handlers import GetServiceHandler, ListServicesHandler
-from ipam.service_entity.query.queries import GetServiceQuery, ListServicesQuery
+from ipam.service_entity.infra import PostgresServiceReadModelRepository
+from ipam.service_entity.query import GetServiceHandler, GetServiceQuery, ListServicesHandler, ListServicesQuery
 from ipam.service_entity.router.schemas import (
     BulkUpdateServiceItem as BulkUpdateServiceItemSchema,
 )

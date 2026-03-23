@@ -1,72 +1,71 @@
+"""IPAM event projector — registers all domain event handlers with Kafka consumer."""
+
 import logging
 from functools import partial
 
 from shared.messaging.consumer import KafkaEventConsumer
 
-from ipam.asn.domain.events import ASNCreated, ASNDeleted, ASNUpdated
-from ipam.asn.infra.projector import handle_asn_created, handle_asn_deleted, handle_asn_updated
-from ipam.fhrp_group.domain.events import FHRPGroupCreated, FHRPGroupDeleted, FHRPGroupUpdated
-from ipam.fhrp_group.infra.projector import (
+from ipam.asn import ASNCreated, ASNDeleted, ASNUpdated
+from ipam.asn.infra import handle_asn_created, handle_asn_deleted, handle_asn_updated
+from ipam.fhrp_group import FHRPGroupCreated, FHRPGroupDeleted, FHRPGroupUpdated
+from ipam.fhrp_group.infra import (
     handle_fhrp_group_created,
     handle_fhrp_group_deleted,
     handle_fhrp_group_updated,
 )
-from ipam.ip_address.domain.events import (
-    IPAddressCreated,
-    IPAddressDeleted,
-    IPAddressStatusChanged,
-    IPAddressUpdated,
-)
-from ipam.ip_address.infra.projector import (
+from ipam.ip_address import IPAddressCreated, IPAddressDeleted, IPAddressStatusChanged, IPAddressUpdated
+from ipam.ip_address.infra import (
     handle_ip_address_created,
     handle_ip_address_deleted,
     handle_ip_address_status_changed,
     handle_ip_address_updated,
 )
-from ipam.ip_range.domain.events import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
-from ipam.ip_range.infra.projector import (
+from ipam.ip_range import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
+from ipam.ip_range.infra import (
     handle_ip_range_created,
     handle_ip_range_deleted,
     handle_ip_range_status_changed,
     handle_ip_range_updated,
 )
-from ipam.prefix.domain.events import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
-from ipam.prefix.infra.projector import (
+from ipam.prefix import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
+from ipam.prefix.infra import (
     handle_prefix_created,
     handle_prefix_deleted,
     handle_prefix_status_changed,
     handle_prefix_updated,
 )
-from ipam.rir.domain.events import RIRCreated, RIRDeleted, RIRUpdated
-from ipam.rir.infra.projector import handle_rir_created, handle_rir_deleted, handle_rir_updated
-from ipam.route_target.domain.events import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
-from ipam.route_target.infra.projector import (
+from ipam.rir import RIRCreated, RIRDeleted, RIRUpdated
+from ipam.rir.infra import handle_rir_created, handle_rir_deleted, handle_rir_updated
+from ipam.route_target import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
+from ipam.route_target.infra import (
     handle_route_target_created,
     handle_route_target_deleted,
     handle_route_target_updated,
 )
-from ipam.service_entity.domain.events import ServiceCreated, ServiceDeleted, ServiceUpdated
-from ipam.service_entity.infra.projector import handle_service_created, handle_service_deleted, handle_service_updated
-from ipam.vlan.domain.events import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
-from ipam.vlan.infra.projector import (
+from ipam.service_entity import ServiceCreated, ServiceDeleted, ServiceUpdated
+from ipam.service_entity.infra import handle_service_created, handle_service_deleted, handle_service_updated
+from ipam.vlan import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
+from ipam.vlan.infra import (
     handle_vlan_created,
     handle_vlan_deleted,
     handle_vlan_status_changed,
     handle_vlan_updated,
 )
-from ipam.vlan_group.domain.events import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
-from ipam.vlan_group.infra.projector import (
+from ipam.vlan_group import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
+from ipam.vlan_group.infra import (
     handle_vlan_group_created,
     handle_vlan_group_deleted,
     handle_vlan_group_updated,
 )
-from ipam.vrf.domain.events import VRFCreated, VRFDeleted, VRFUpdated
-from ipam.vrf.infra.projector import handle_vrf_created, handle_vrf_deleted, handle_vrf_updated
+from ipam.vrf import VRFCreated, VRFDeleted, VRFUpdated
+from ipam.vrf.infra import handle_vrf_created, handle_vrf_deleted, handle_vrf_updated
 
 logger = logging.getLogger(__name__)
 
 
 class IPAMEventProjector:
+    """Registers all IPAM domain event handlers for read model projection."""
+
     def __init__(self, session_factory: object, cache: object | None = None) -> None:
         self._session_factory = session_factory
         self._cache = cache

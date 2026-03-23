@@ -1,3 +1,5 @@
+"""Event projectors that sync VLAN domain events to the read model."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent
@@ -16,6 +18,7 @@ async def _update_model(session_factory, model_cls, aggregate_id: UUID, values: 
 
 
 async def handle_vlan_created(session_factory, cache, event: DomainEvent) -> None:
+    """Project a VLANCreated event into the read model via upsert."""
     assert isinstance(event, VLANCreated)
     async with session_factory() as session:
         stmt = insert(VLANReadModel).values(
@@ -37,6 +40,7 @@ async def handle_vlan_created(session_factory, cache, event: DomainEvent) -> Non
 
 
 async def handle_vlan_updated(session_factory, cache, event: DomainEvent) -> None:
+    """Project a VLANUpdated event by updating changed fields."""
     assert isinstance(event, VLANUpdated)
     values: dict = {}
     if event.name is not None:
@@ -54,9 +58,11 @@ async def handle_vlan_updated(session_factory, cache, event: DomainEvent) -> Non
 
 
 async def handle_vlan_status_changed(session_factory, cache, event: DomainEvent) -> None:
+    """Project a VLANStatusChanged event by updating the status field."""
     assert isinstance(event, VLANStatusChanged)
     await _update_model(session_factory, VLANReadModel, event.aggregate_id, {"status": event.new_status})
 
 
 async def handle_vlan_deleted(session_factory, cache, event: DomainEvent) -> None:
+    """Project a VLANDeleted event by marking the read model as deleted."""
     await _update_model(session_factory, VLANReadModel, event.aggregate_id, {"is_deleted": True})

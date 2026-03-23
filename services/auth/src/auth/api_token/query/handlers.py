@@ -1,17 +1,22 @@
+"""Query handlers for listing and validating API tokens."""
+
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import AuthorizationError
 
-from auth.api_token.domain.repository import APITokenRepository
+from auth.api_token.domain import APITokenRepository
 from auth.api_token.query.dto import APITokenDTO
 from auth.shared.security import JWTService
 from auth.shared.token_blacklist import RedisTokenBlacklist
 
 
 class ListAPITokensHandler(QueryHandler[tuple[list[APITokenDTO], int]]):
+    """Handles paginated listing of API tokens for a user."""
+
     def __init__(self, repository: APITokenRepository) -> None:
         self._repository = repository
 
     async def handle(self, query: Query) -> tuple[list[APITokenDTO], int]:
+        """Return a paginated list of API tokens and total count."""
         tokens, total = await self._repository.find_all_by_user(
             query.user_id,
             offset=query.offset,
@@ -35,6 +40,8 @@ class ListAPITokensHandler(QueryHandler[tuple[list[APITokenDTO], int]]):
 
 
 class ValidateTokenHandler(QueryHandler[dict]):
+    """Handles JWT token validation and blacklist checking."""
+
     def __init__(
         self,
         jwt_service: JWTService,
@@ -44,6 +51,7 @@ class ValidateTokenHandler(QueryHandler[dict]):
         self._token_blacklist = token_blacklist
 
     async def handle(self, query: Query) -> dict:
+        """Validate a JWT token and return its payload."""
         try:
             payload = self._jwt_service.decode_token(query.token)
         except Exception as exc:

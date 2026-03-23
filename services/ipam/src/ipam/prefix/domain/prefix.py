@@ -1,3 +1,5 @@
+"""Prefix aggregate root for IP prefix management."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -11,6 +13,8 @@ from ipam.prefix.domain.value_objects import PrefixNetwork, PrefixStatus
 
 
 class Prefix(AggregateRoot):
+    """Aggregate root representing an IP network prefix within a VRF scope."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.network: PrefixNetwork | None = None
@@ -38,6 +42,7 @@ class Prefix(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> Prefix:
+        """Create a new Prefix aggregate with a validated network CIDR."""
         prefix = cls()
         prefix.apply_event(
             PrefixCreated(
@@ -66,6 +71,7 @@ class Prefix(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable fields of the prefix."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted prefix")
         self.apply_event(
@@ -82,6 +88,7 @@ class Prefix(AggregateRoot):
         )
 
     def change_status(self, new_status: PrefixStatus) -> None:
+        """Transition the prefix to a new lifecycle status."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot change status of a deleted prefix")
         if self.status == new_status:
@@ -96,6 +103,7 @@ class Prefix(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the prefix by emitting a PrefixDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("Prefix is already deleted")
         self.apply_event(

@@ -10,8 +10,8 @@ from uuid import uuid4
 
 import pytest
 from auth.shared.models import AuthBase
-from auth.user.domain.user import User
-from auth.user.infra.repository import PostgresUserRepository
+from auth.user import User
+from auth.user.infra import PostgresUserRepository
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from testcontainers.postgres import PostgresContainer

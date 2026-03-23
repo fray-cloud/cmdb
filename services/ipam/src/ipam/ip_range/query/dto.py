@@ -1,3 +1,5 @@
+"""Data transfer objects for IPRange query results."""
+
 from datetime import datetime
 from uuid import UUID
 

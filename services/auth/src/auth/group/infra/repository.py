@@ -1,19 +1,23 @@
+"""PostgreSQL-backed group repository implementation."""
+
 from uuid import UUID
 
 from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.group.domain.group import Group
-from auth.group.domain.repository import GroupRepository
+from auth.group.domain import Group, GroupRepository
 from auth.shared.models import GroupModel, GroupRoleModel
 
 
 class PostgresGroupRepository(GroupRepository):
+    """GroupRepository implementation using PostgreSQL via SQLAlchemy."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def find_by_id(self, entity_id: UUID) -> Group | None:
+        """Find a group by primary key."""
         result = await self._session.get(GroupModel, entity_id)
         return self._to_entity(result) if result else None
 
@@ -40,6 +44,7 @@ class PostgresGroupRepository(GroupRepository):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[Group], int]:
+        """Return a paginated list of groups and total count for a tenant."""
         count_stmt = select(sa_func.count()).select_from(GroupModel).where(GroupModel.tenant_id == tenant_id)
         total = (await self._session.execute(count_stmt)).scalar_one()
 

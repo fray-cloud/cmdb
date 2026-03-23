@@ -1,3 +1,5 @@
+"""RIR REST API router — CRUD and bulk endpoints for Regional Internet Registries."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,26 +9,23 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.rir.command.commands import (
+from ipam.rir.command import (
     BulkCreateRIRsCommand,
+    BulkCreateRIRsHandler,
     BulkDeleteRIRsCommand,
+    BulkDeleteRIRsHandler,
     BulkUpdateRIRItem,
     BulkUpdateRIRsCommand,
-    CreateRIRCommand,
-    DeleteRIRCommand,
-    UpdateRIRCommand,
-)
-from ipam.rir.command.handlers import (
-    BulkCreateRIRsHandler,
-    BulkDeleteRIRsHandler,
     BulkUpdateRIRsHandler,
+    CreateRIRCommand,
     CreateRIRHandler,
+    DeleteRIRCommand,
     DeleteRIRHandler,
+    UpdateRIRCommand,
     UpdateRIRHandler,
 )
-from ipam.rir.infra.repository import PostgresRIRReadModelRepository
-from ipam.rir.query.handlers import GetRIRHandler, ListRIRsHandler
-from ipam.rir.query.queries import GetRIRQuery, ListRIRsQuery
+from ipam.rir.infra import PostgresRIRReadModelRepository
+from ipam.rir.query import GetRIRHandler, GetRIRQuery, ListRIRsHandler, ListRIRsQuery
 from ipam.rir.router.schemas import (
     BulkUpdateRIRItem as BulkUpdateRIRItemSchema,
 )

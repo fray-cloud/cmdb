@@ -1,3 +1,5 @@
+"""Route Target command handlers — process create, update, delete, and bulk commands."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.route_target import RouteTarget
 from ipam.route_target.command.commands import (
     BulkCreateRouteTargetsCommand,
     BulkDeleteRouteTargetsCommand,
@@ -15,7 +18,6 @@ from ipam.route_target.command.commands import (
     DeleteRouteTargetCommand,
     UpdateRouteTargetCommand,
 )
-from ipam.route_target.domain.route_target import RouteTarget
 from ipam.route_target.query.read_model import RouteTargetReadModelRepository
 
 # ---------------------------------------------------------------------------
@@ -24,6 +26,8 @@ from ipam.route_target.query.read_model import RouteTargetReadModelRepository
 
 
 class CreateRouteTargetHandler(CommandHandler[UUID]):
+    """Handle CreateRouteTargetCommand by creating a new Route Target aggregate."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -35,6 +39,7 @@ class CreateRouteTargetHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateRouteTargetCommand) -> UUID:
+        """Create a Route Target, persist events, update read model, and publish to Kafka."""
         rt = RouteTarget.create(
             name=command.name,
             tenant_id=command.tenant_id,
@@ -50,6 +55,8 @@ class CreateRouteTargetHandler(CommandHandler[UUID]):
 
 
 class UpdateRouteTargetHandler(CommandHandler[None]):
+    """Handle UpdateRouteTargetCommand by applying updates to an existing Route Target."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -79,6 +86,8 @@ class UpdateRouteTargetHandler(CommandHandler[None]):
 
 
 class DeleteRouteTargetHandler(CommandHandler[None]):
+    """Handle DeleteRouteTargetCommand by soft-deleting an existing Route Target."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -108,6 +117,8 @@ class DeleteRouteTargetHandler(CommandHandler[None]):
 
 
 class BulkCreateRouteTargetsHandler(CommandHandler[list[UUID]]):
+    """Handle BulkCreateRouteTargetsCommand by creating multiple Route Targets."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -139,6 +150,8 @@ class BulkCreateRouteTargetsHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateRouteTargetsHandler(CommandHandler[int]):
+    """Handle BulkUpdateRouteTargetsCommand by updating multiple Route Targets."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -172,6 +185,8 @@ class BulkUpdateRouteTargetsHandler(CommandHandler[int]):
 
 
 class BulkDeleteRouteTargetsHandler(CommandHandler[int]):
+    """Handle BulkDeleteRouteTargetsCommand by soft-deleting multiple Route Targets."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,

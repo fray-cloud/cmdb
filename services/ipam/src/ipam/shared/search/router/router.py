@@ -1,3 +1,5 @@
+"""Global search REST API router — full-text search endpoint."""
+
 from fastapi import APIRouter, Depends, Request
 from fastapi import Query as QueryParam
 from shared.cqrs.bus import QueryBus

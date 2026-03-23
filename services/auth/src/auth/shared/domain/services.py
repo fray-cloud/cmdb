@@ -1,19 +1,29 @@
+"""Domain services for password hashing and permission checking."""
+
 from abc import ABC, abstractmethod
 
-from auth.group.domain.group import Group
-from auth.role.domain.role import Role
-from auth.user.domain.user import User
+from auth.group import Group
+from auth.role import Role
+from auth.user import User
 
 
 class PasswordService(ABC):
-    @abstractmethod
-    def hash(self, password: str) -> str: ...
+    """Abstract interface for password hashing and verification."""
 
     @abstractmethod
-    def verify(self, password: str, hashed: str) -> bool: ...
+    def hash(self, password: str) -> str:
+        """Hash a plaintext password."""
+        ...
+
+    @abstractmethod
+    def verify(self, password: str, hashed: str) -> bool:
+        """Verify a plaintext password against a hash."""
+        ...
 
 
 class PermissionChecker:
+    """Evaluates whether a user has a specific permission via roles and groups."""
+
     def has_permission(
         self,
         user: User,

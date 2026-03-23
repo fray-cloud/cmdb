@@ -1,3 +1,5 @@
+"""Group aggregate for organizing users with shared role assignments."""
+
 from typing import Any
 from uuid import UUID
 
@@ -7,6 +9,8 @@ from shared.event.domain_event import DomainEvent
 
 
 class Group(Entity):
+    """Group aggregate root that bundles roles for collective user assignment."""
+
     name: str
     tenant_id: UUID
     role_ids: list[UUID] = Field(default_factory=list)
@@ -27,4 +31,5 @@ class Group(Entity):
         tenant_id: UUID,
         role_ids: list[UUID] | None = None,
     ) -> "Group":
+        """Create a new group with optional pre-assigned roles."""
         return cls(name=name, tenant_id=tenant_id, role_ids=role_ids or [])

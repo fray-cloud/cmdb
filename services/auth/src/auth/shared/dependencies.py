@@ -1,3 +1,5 @@
+"""FastAPI dependency functions for authentication."""
+
 from uuid import UUID
 
 from fastapi import Request
@@ -7,6 +9,7 @@ from auth.shared.security import JWTService
 
 
 async def get_current_user(request: Request) -> dict:
+    """Extract and validate the current user from the Authorization header."""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         raise AuthorizationError("Missing or invalid Authorization header")

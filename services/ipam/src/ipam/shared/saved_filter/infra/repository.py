@@ -1,3 +1,5 @@
+"""Saved filter PostgreSQL repository implementation."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -11,6 +13,8 @@ from ipam.shared.saved_filter.query.read_model import SavedFilterRepository
 
 
 class PostgresSavedFilterRepository(SavedFilterRepository):
+    """PostgreSQL-backed repository for saved filter CRUD operations."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 

@@ -11,62 +11,44 @@ from shared.cqrs.bus import CommandBus, QueryBus
 
 from ipam.application.export_service import export_csv, export_json, export_yaml
 from ipam.application.import_service import VALID_ENTITY_TYPES, parse_csv
-from ipam.asn.command.commands import BulkCreateASNsCommand, CreateASNCommand
-from ipam.asn.command.handlers import BulkCreateASNsHandler
-from ipam.asn.infra.repository import PostgresASNReadModelRepository
-from ipam.asn.query.handlers import ListASNsHandler
-from ipam.asn.query.queries import ListASNsQuery
-from ipam.fhrp_group.command.commands import BulkCreateFHRPGroupsCommand, CreateFHRPGroupCommand
-from ipam.fhrp_group.command.handlers import BulkCreateFHRPGroupsHandler
-from ipam.fhrp_group.infra.repository import PostgresFHRPGroupReadModelRepository
-from ipam.fhrp_group.query.handlers import ListFHRPGroupsHandler
-from ipam.fhrp_group.query.queries import ListFHRPGroupsQuery
-from ipam.ip_address.command.commands import BulkCreateIPAddressesCommand, CreateIPAddressCommand
-from ipam.ip_address.command.handlers import BulkCreateIPAddressesHandler
-from ipam.ip_address.infra.repository import PostgresIPAddressReadModelRepository
-from ipam.ip_address.query.handlers import ListIPAddressesHandler
-from ipam.ip_address.query.queries import ListIPAddressesQuery
-from ipam.ip_range.command.commands import BulkCreateIPRangesCommand, CreateIPRangeCommand
-from ipam.ip_range.command.handlers import BulkCreateIPRangesHandler
-from ipam.ip_range.infra.repository import PostgresIPRangeReadModelRepository
-from ipam.ip_range.query.handlers import ListIPRangesHandler
-from ipam.ip_range.query.queries import ListIPRangesQuery
-from ipam.prefix.command.commands import BulkCreatePrefixesCommand, CreatePrefixCommand
-from ipam.prefix.command.handlers import BulkCreatePrefixesHandler
-from ipam.prefix.infra.repository import PostgresPrefixReadModelRepository
-from ipam.prefix.query.handlers import ListPrefixesHandler
-from ipam.prefix.query.queries import ListPrefixesQuery
-from ipam.rir.command.commands import BulkCreateRIRsCommand, CreateRIRCommand
-from ipam.rir.command.handlers import BulkCreateRIRsHandler
-from ipam.rir.infra.repository import PostgresRIRReadModelRepository
-from ipam.rir.query.handlers import ListRIRsHandler
-from ipam.rir.query.queries import ListRIRsQuery
-from ipam.route_target.command.commands import BulkCreateRouteTargetsCommand, CreateRouteTargetCommand
-from ipam.route_target.command.handlers import BulkCreateRouteTargetsHandler
-from ipam.route_target.infra.repository import PostgresRouteTargetReadModelRepository
-from ipam.route_target.query.handlers import ListRouteTargetsHandler
-from ipam.route_target.query.queries import ListRouteTargetsQuery
-from ipam.service_entity.command.commands import BulkCreateServicesCommand, CreateServiceCommand
-from ipam.service_entity.command.handlers import BulkCreateServicesHandler
-from ipam.service_entity.infra.repository import PostgresServiceReadModelRepository
-from ipam.service_entity.query.handlers import ListServicesHandler
-from ipam.service_entity.query.queries import ListServicesQuery
+from ipam.asn.command import BulkCreateASNsCommand, BulkCreateASNsHandler, CreateASNCommand
+from ipam.asn.infra import PostgresASNReadModelRepository
+from ipam.asn.query import ListASNsHandler, ListASNsQuery
+from ipam.fhrp_group.command import BulkCreateFHRPGroupsCommand, BulkCreateFHRPGroupsHandler, CreateFHRPGroupCommand
+from ipam.fhrp_group.infra import PostgresFHRPGroupReadModelRepository
+from ipam.fhrp_group.query import ListFHRPGroupsHandler, ListFHRPGroupsQuery
+from ipam.ip_address.command import BulkCreateIPAddressesCommand, BulkCreateIPAddressesHandler, CreateIPAddressCommand
+from ipam.ip_address.infra import PostgresIPAddressReadModelRepository
+from ipam.ip_address.query import ListIPAddressesHandler, ListIPAddressesQuery
+from ipam.ip_range.command import BulkCreateIPRangesCommand, BulkCreateIPRangesHandler, CreateIPRangeCommand
+from ipam.ip_range.infra import PostgresIPRangeReadModelRepository
+from ipam.ip_range.query import ListIPRangesHandler, ListIPRangesQuery
+from ipam.prefix.command import BulkCreatePrefixesCommand, BulkCreatePrefixesHandler, CreatePrefixCommand
+from ipam.prefix.infra import PostgresPrefixReadModelRepository
+from ipam.prefix.query import ListPrefixesHandler, ListPrefixesQuery
+from ipam.rir.command import BulkCreateRIRsCommand, BulkCreateRIRsHandler, CreateRIRCommand
+from ipam.rir.infra import PostgresRIRReadModelRepository
+from ipam.rir.query import ListRIRsHandler, ListRIRsQuery
+from ipam.route_target.command import (
+    BulkCreateRouteTargetsCommand,
+    BulkCreateRouteTargetsHandler,
+    CreateRouteTargetCommand,
+)
+from ipam.route_target.infra import PostgresRouteTargetReadModelRepository
+from ipam.route_target.query import ListRouteTargetsHandler, ListRouteTargetsQuery
+from ipam.service_entity.command import BulkCreateServicesCommand, BulkCreateServicesHandler, CreateServiceCommand
+from ipam.service_entity.infra import PostgresServiceReadModelRepository
+from ipam.service_entity.query import ListServicesHandler, ListServicesQuery
 from ipam.shared.import_export.router.schemas import ImportResponse, ImportRowErrorSchema
-from ipam.vlan.command.commands import BulkCreateVLANsCommand, CreateVLANCommand
-from ipam.vlan.command.handlers import BulkCreateVLANsHandler
-from ipam.vlan.infra.repository import PostgresVLANReadModelRepository
-from ipam.vlan.query.handlers import ListVLANsHandler
-from ipam.vlan.query.queries import ListVLANsQuery
-from ipam.vlan_group.command.commands import BulkCreateVLANGroupsCommand, CreateVLANGroupCommand
-from ipam.vlan_group.command.handlers import BulkCreateVLANGroupsHandler
-from ipam.vlan_group.infra.repository import PostgresVLANGroupReadModelRepository
-from ipam.vlan_group.query.handlers import ListVLANGroupsHandler
-from ipam.vlan_group.query.queries import ListVLANGroupsQuery
-from ipam.vrf.command.commands import BulkCreateVRFsCommand, CreateVRFCommand
-from ipam.vrf.command.handlers import BulkCreateVRFsHandler
-from ipam.vrf.infra.repository import PostgresVRFReadModelRepository
-from ipam.vrf.query.handlers import ListVRFsHandler
-from ipam.vrf.query.queries import ListVRFsQuery
+from ipam.vlan.command import BulkCreateVLANsCommand, BulkCreateVLANsHandler, CreateVLANCommand
+from ipam.vlan.infra import PostgresVLANReadModelRepository
+from ipam.vlan.query import ListVLANsHandler, ListVLANsQuery
+from ipam.vlan_group.command import BulkCreateVLANGroupsCommand, BulkCreateVLANGroupsHandler, CreateVLANGroupCommand
+from ipam.vlan_group.infra import PostgresVLANGroupReadModelRepository
+from ipam.vlan_group.query import ListVLANGroupsHandler, ListVLANGroupsQuery
+from ipam.vrf.command import BulkCreateVRFsCommand, BulkCreateVRFsHandler, CreateVRFCommand
+from ipam.vrf.infra import PostgresVRFReadModelRepository
+from ipam.vrf.query import ListVRFsHandler, ListVRFsQuery
 
 router = APIRouter(tags=["import-export"])
 

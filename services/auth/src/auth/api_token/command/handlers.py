@@ -1,3 +1,5 @@
+"""Command handlers for API token creation and revocation."""
+
 import hashlib
 import secrets
 
@@ -5,12 +7,13 @@ from shared.cqrs.command import Command, CommandHandler
 from shared.domain.exceptions import EntityNotFoundError
 from shared.messaging.producer import KafkaEventProducer
 
-from auth.api_token.domain.api_token import APIToken
-from auth.api_token.domain.repository import APITokenRepository
+from auth.api_token.domain import APIToken, APITokenRepository
 from auth.api_token.query.dto import APITokenDTO
 
 
 class CreateAPITokenHandler(CommandHandler[APITokenDTO]):
+    """Handles API token generation with secure key hashing."""
+
     def __init__(
         self,
         repository: APITokenRepository,
@@ -20,6 +23,7 @@ class CreateAPITokenHandler(CommandHandler[APITokenDTO]):
         self._event_producer = event_producer
 
     async def handle(self, command: Command) -> APITokenDTO:
+        """Create a new API token, returning the raw key only once."""
         raw_key = secrets.token_urlsafe(48)
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
 
@@ -53,6 +57,8 @@ class CreateAPITokenHandler(CommandHandler[APITokenDTO]):
 
 
 class RevokeAPITokenHandler(CommandHandler[None]):
+    """Handles API token revocation."""
+
     def __init__(
         self,
         repository: APITokenRepository,
@@ -62,6 +68,7 @@ class RevokeAPITokenHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: Command) -> None:
+        """Revoke an API token and publish domain events."""
         token = await self._repository.find_by_id(command.token_id)
         if token is None:
             raise EntityNotFoundError(f"API Token {command.token_id} not found")

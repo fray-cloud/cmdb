@@ -1,3 +1,5 @@
+"""IPAM async database connection manager using SQLAlchemy."""
+
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,

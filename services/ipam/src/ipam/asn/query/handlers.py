@@ -1,3 +1,5 @@
+"""ASN query handlers — retrieve single or listed ASN read models."""
+
 from shared.api.filtering import FilterOperator, FilterParam
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
@@ -8,10 +10,13 @@ from ipam.shared.query_utils import build_common_filters
 
 
 class GetASNHandler(QueryHandler[ASNDTO]):
+    """Handle GetASNQuery by fetching a single ASN from the read model."""
+
     def __init__(self, read_model_repo: ASNReadModelRepository) -> None:
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> ASNDTO:
+        """Find an ASN by ID or raise EntityNotFoundError."""
         data = await self._repo.find_by_id(query.asn_id)
         if data is None:
             raise EntityNotFoundError(f"ASN {query.asn_id} not found")
@@ -19,6 +24,8 @@ class GetASNHandler(QueryHandler[ASNDTO]):
 
 
 class ListASNsHandler(QueryHandler[tuple[list[ASNDTO], int]]):
+    """Handle ListASNsQuery by returning a paginated list of ASNs."""
+
     def __init__(self, read_model_repo: ASNReadModelRepository) -> None:
         self._repo = read_model_repo
 

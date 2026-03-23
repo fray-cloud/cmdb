@@ -13,8 +13,7 @@ from ipam.prefix.command.handlers import (
     DeletePrefixHandler,
     UpdatePrefixHandler,
 )
-from ipam.prefix.query.handlers import GetPrefixHandler, ListPrefixesHandler
-from ipam.prefix.query.read_model import PrefixReadModelRepository
+from ipam.prefix.query import GetPrefixHandler, ListPrefixesHandler, PrefixReadModelRepository
 from shared.domain.exceptions import ConflictError
 from shared.event.domain_event import DomainEvent
 

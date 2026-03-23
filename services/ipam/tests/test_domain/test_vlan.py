@@ -3,9 +3,7 @@
 from uuid import UUID, uuid4
 
 import pytest
-from ipam.vlan.domain.events import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
-from ipam.vlan.domain.value_objects import VLANId, VLANStatus
-from ipam.vlan.domain.vlan import VLAN
+from ipam.vlan import VLAN, VLANCreated, VLANDeleted, VLANId, VLANStatus, VLANStatusChanged, VLANUpdated
 from pydantic import ValidationError
 from shared.domain.exceptions import BusinessRuleViolationError
 

@@ -1,3 +1,5 @@
+"""VLANGroup aggregate root for grouping VLANs with a defined VID range."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -10,6 +12,8 @@ from ipam.vlan_group.domain.events import VLANGroupCreated, VLANGroupDeleted, VL
 
 
 class VLANGroup(AggregateRoot):
+    """Aggregate root representing a named group of VLANs with a configurable VID range."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.name: str = ""
@@ -35,6 +39,7 @@ class VLANGroup(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> VLANGroup:
+        """Create a new VLANGroup with a validated VID range."""
         cls._validate_vid_range(min_vid, max_vid)
         aggregate = cls()
         aggregate.apply_event(
@@ -63,6 +68,7 @@ class VLANGroup(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable fields of the VLAN group."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted VLANGroup")
         new_min = min_vid if min_vid is not None else self.min_vid
@@ -83,6 +89,7 @@ class VLANGroup(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the VLAN group by emitting a VLANGroupDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("VLANGroup is already deleted")
         self.apply_event(

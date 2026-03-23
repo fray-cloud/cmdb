@@ -1,3 +1,5 @@
+"""FHRP Group domain events — FHRPGroupCreated, FHRPGroupUpdated, FHRPGroupDeleted."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

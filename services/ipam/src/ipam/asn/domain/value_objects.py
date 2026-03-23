@@ -1,8 +1,12 @@
+"""ASN value objects — ASNumber with 32-bit range validation."""
+
 from pydantic import field_validator
 from shared.domain.value_object import ValueObject
 
 
 class ASNumber(ValueObject):
+    """Autonomous System Number value object (1 to 4294967295)."""
+
     asn: int
 
     @field_validator("asn")

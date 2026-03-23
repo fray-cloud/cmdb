@@ -1,3 +1,5 @@
+"""RIR query handlers — retrieve single or listed RIR read models."""
+
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
 
@@ -7,10 +9,13 @@ from ipam.shared.query_utils import build_common_filters
 
 
 class GetRIRHandler(QueryHandler[RIRDTO]):
+    """Handle GetRIRQuery by fetching a single RIR from the read model."""
+
     def __init__(self, read_model_repo: RIRReadModelRepository) -> None:
         self._repo = read_model_repo
 
     async def handle(self, query: Query) -> RIRDTO:
+        """Find a RIR by ID or raise EntityNotFoundError."""
         data = await self._repo.find_by_id(query.rir_id)
         if data is None:
             raise EntityNotFoundError(f"RIR {query.rir_id} not found")
@@ -18,6 +23,8 @@ class GetRIRHandler(QueryHandler[RIRDTO]):
 
 
 class ListRIRsHandler(QueryHandler[tuple[list[RIRDTO], int]]):
+    """Handle ListRIRsQuery by returning a paginated list of RIRs."""
+
     def __init__(self, read_model_repo: RIRReadModelRepository) -> None:
         self._repo = read_model_repo
 

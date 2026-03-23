@@ -1,3 +1,5 @@
+"""Route Target command definitions — create, update, delete, and bulk operations."""
+
 from uuid import UUID
 
 from shared.cqrs.command import Command

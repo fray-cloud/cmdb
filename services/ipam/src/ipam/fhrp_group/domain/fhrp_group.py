@@ -1,3 +1,5 @@
+"""FHRP Group aggregate root — First Hop Redundancy Protocol group domain entity."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -11,6 +13,8 @@ from ipam.fhrp_group.domain.value_objects import FHRPAuthType, FHRPProtocol
 
 
 class FHRPGroup(AggregateRoot):
+    """FHRP Group aggregate managing redundancy protocol group lifecycle via event sourcing."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.protocol: FHRPProtocol | None = None
@@ -36,6 +40,7 @@ class FHRPGroup(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> FHRPGroup:
+        """Create a new FHRP Group aggregate and emit a FHRPGroupCreated event."""
         group = cls()
         group.apply_event(
             FHRPGroupCreated(
@@ -63,6 +68,7 @@ class FHRPGroup(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable FHRP Group fields and emit a FHRPGroupUpdated event."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted FHRP group")
         self.apply_event(
@@ -79,6 +85,7 @@ class FHRPGroup(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the FHRP Group and emit a FHRPGroupDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("FHRP group is already deleted")
         self.apply_event(

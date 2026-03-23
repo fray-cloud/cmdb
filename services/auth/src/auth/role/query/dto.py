@@ -1,3 +1,5 @@
+"""Role data transfer objects for query responses."""
+
 from datetime import datetime
 from uuid import UUID
 

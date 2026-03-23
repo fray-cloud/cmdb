@@ -1,7 +1,11 @@
+"""Redis-backed JWT token blacklist for revoked tokens."""
+
 import redis.asyncio as redis
 
 
 class RedisTokenBlacklist:
+    """Stores revoked JWT token IDs in Redis with TTL expiration."""
+
     def __init__(self, redis_url: str) -> None:
         self._redis = redis.from_url(redis_url, decode_responses=True)
 

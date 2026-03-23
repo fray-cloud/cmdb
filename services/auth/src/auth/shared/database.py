@@ -1,3 +1,5 @@
+"""Async database engine and session factory setup."""
+
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,

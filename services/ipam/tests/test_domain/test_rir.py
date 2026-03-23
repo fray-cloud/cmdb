@@ -3,12 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from ipam.rir.domain.events import (
-    RIRCreated,
-    RIRDeleted,
-    RIRUpdated,
-)
-from ipam.rir.domain.rir import RIR
+from ipam.rir import RIR, RIRCreated, RIRDeleted, RIRUpdated
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

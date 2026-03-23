@@ -1,3 +1,5 @@
+"""Saved filter query handlers — retrieve single or listed saved filters."""
+
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
 
@@ -6,6 +8,8 @@ from ipam.shared.saved_filter.query.read_model import SavedFilterRepository
 
 
 class GetSavedFilterHandler(QueryHandler[SavedFilterDTO]):
+    """Handle GetSavedFilterQuery by fetching a single saved filter."""
+
     def __init__(self, repo: SavedFilterRepository) -> None:
         self._repo = repo
 
@@ -17,6 +21,8 @@ class GetSavedFilterHandler(QueryHandler[SavedFilterDTO]):
 
 
 class ListSavedFiltersHandler(QueryHandler[list[SavedFilterDTO]]):
+    """Handle ListSavedFiltersQuery by returning saved filters for a user."""
+
     def __init__(self, repo: SavedFilterRepository) -> None:
         self._repo = repo
 

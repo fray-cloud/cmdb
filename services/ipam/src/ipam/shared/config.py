@@ -1,3 +1,5 @@
+"""IPAM service configuration — settings loaded from environment variables."""
+
 from pydantic_settings import BaseSettings
 
 

@@ -1,3 +1,5 @@
+"""Command definitions for VLAN operations."""
+
 from uuid import UUID
 
 from shared.cqrs.command import Command

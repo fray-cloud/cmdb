@@ -1,3 +1,5 @@
+"""Abstract read model repository for Prefix queries."""
+
 from abc import abstractmethod
 from uuid import UUID
 
@@ -5,6 +7,8 @@ from ipam.shared.query_utils import ReadModelRepository
 
 
 class PrefixReadModelRepository(ReadModelRepository):
+    """Read-side repository interface for querying denormalized prefix data."""
+
     @abstractmethod
     async def find_children(self, parent_network: str, vrf_id: UUID | None) -> list[dict]: ...
 

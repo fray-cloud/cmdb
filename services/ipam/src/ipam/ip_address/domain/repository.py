@@ -1,3 +1,5 @@
+"""Abstract repository interface for the IPAddress aggregate."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
@@ -5,6 +7,8 @@ from ipam.ip_address.domain.ip_address import IPAddress
 
 
 class IPAddressRepository(ABC):
+    """Domain repository interface for persisting and retrieving IPAddress aggregates."""
+
     @abstractmethod
     async def find_by_id(self, ip_id: UUID) -> IPAddress | None: ...
 

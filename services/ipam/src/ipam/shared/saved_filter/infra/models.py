@@ -1,3 +1,5 @@
+"""Saved filter SQLAlchemy model — persistent storage for user filter presets."""
+
 from datetime import datetime
 from uuid import UUID
 

@@ -3,9 +3,8 @@
 from uuid import UUID, uuid4
 
 import pytest
-from ipam.shared.value_objects import RouteDistinguisher
-from ipam.vrf.domain.events import VRFCreated, VRFDeleted, VRFUpdated
-from ipam.vrf.domain.vrf import VRF
+from ipam.shared import RouteDistinguisher
+from ipam.vrf import VRF, VRFCreated, VRFDeleted, VRFUpdated
 from pydantic import ValidationError
 from shared.domain.exceptions import BusinessRuleViolationError
 

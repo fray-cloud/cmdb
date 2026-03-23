@@ -8,32 +8,17 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from ipam.asn.domain.events import ASNCreated, ASNDeleted, ASNUpdated
-from ipam.fhrp_group.domain.events import FHRPGroupCreated, FHRPGroupDeleted, FHRPGroupUpdated
-from ipam.ip_address.domain.events import (
-    IPAddressCreated,
-    IPAddressDeleted,
-    IPAddressStatusChanged,
-    IPAddressUpdated,
-)
-from ipam.ip_range.domain.events import (
-    IPRangeCreated,
-    IPRangeDeleted,
-    IPRangeStatusChanged,
-    IPRangeUpdated,
-)
-from ipam.prefix.domain.events import (
-    PrefixCreated,
-    PrefixDeleted,
-    PrefixStatusChanged,
-    PrefixUpdated,
-)
-from ipam.rir.domain.events import RIRCreated, RIRDeleted, RIRUpdated
-from ipam.route_target.domain.events import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
-from ipam.service_entity.domain.events import ServiceCreated, ServiceDeleted, ServiceUpdated
-from ipam.vlan.domain.events import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
-from ipam.vlan_group.domain.events import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
-from ipam.vrf.domain.events import VRFCreated, VRFDeleted, VRFUpdated
+from ipam.asn import ASNCreated, ASNDeleted, ASNUpdated
+from ipam.fhrp_group import FHRPGroupCreated, FHRPGroupDeleted, FHRPGroupUpdated
+from ipam.ip_address import IPAddressCreated, IPAddressDeleted, IPAddressStatusChanged, IPAddressUpdated
+from ipam.ip_range import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
+from ipam.prefix import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
+from ipam.rir import RIRCreated, RIRDeleted, RIRUpdated
+from ipam.route_target import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
+from ipam.service_entity import ServiceCreated, ServiceDeleted, ServiceUpdated
+from ipam.vlan import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
+from ipam.vlan_group import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
+from ipam.vrf import VRFCreated, VRFDeleted, VRFUpdated
 from shared.messaging.serialization import EventSerializer
 
 

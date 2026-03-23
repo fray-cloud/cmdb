@@ -1,3 +1,5 @@
+"""Request and response schemas for VLANGroup API endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 

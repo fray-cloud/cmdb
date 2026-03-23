@@ -1,3 +1,5 @@
+"""Service aggregate root — network service (TCP/UDP/SCTP) domain entity."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -11,6 +13,8 @@ from ipam.service_entity.domain.value_objects import ServiceProtocol
 
 
 class Service(AggregateRoot):
+    """Network service aggregate managing service lifecycle via event sourcing."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.name: str = ""
@@ -34,6 +38,7 @@ class Service(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> Service:
+        """Create a new Service aggregate and emit a ServiceCreated event."""
         cls._validate_ports(ports)
         aggregate = cls()
         aggregate.apply_event(
@@ -62,6 +67,7 @@ class Service(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable Service fields and emit a ServiceUpdated event."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted Service")
         if ports is not None:
@@ -81,6 +87,7 @@ class Service(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the Service and emit a ServiceDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("Service is already deleted")
         self.apply_event(

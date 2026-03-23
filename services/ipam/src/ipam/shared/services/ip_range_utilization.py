@@ -1,9 +1,14 @@
-from ipam.ip_address.domain.ip_address import IPAddress
-from ipam.ip_range.domain.ip_range import IPRange
+"""IP range utilization domain service — calculates address usage within a range."""
+
+from ipam.ip_address import IPAddress
+from ipam.ip_range import IPRange
 
 
 class IPRangeUtilizationService:
+    """Calculates utilization ratio for an IP range based on assigned addresses."""
+
     def calculate(self, ip_range: IPRange, used_addresses: list[IPAddress]) -> float:
+        """Calculate the utilization ratio (0.0 to 1.0) for the given IP range."""
         if ip_range.start_address is None or ip_range.end_address is None:
             return 0.0
         start = int(ip_range.start_address.ip_address)

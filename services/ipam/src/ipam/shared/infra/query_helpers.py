@@ -1,3 +1,5 @@
+"""Shared infrastructure query helpers — filter, sort, tag, and custom field application."""
+
 from __future__ import annotations
 
 from typing import Any

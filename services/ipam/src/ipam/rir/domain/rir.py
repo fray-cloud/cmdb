@@ -1,3 +1,5 @@
+"""RIR aggregate root — Regional Internet Registry domain entity."""
+
 from __future__ import annotations
 
 from typing import Any, Self
@@ -10,6 +12,8 @@ from ipam.rir.domain.events import RIRCreated, RIRDeleted, RIRUpdated
 
 
 class RIR(AggregateRoot):
+    """Regional Internet Registry aggregate managing RIR lifecycle via event sourcing."""
+
     def __init__(self, aggregate_id: UUID | None = None) -> None:
         super().__init__(aggregate_id)
         self.name: str = ""
@@ -29,6 +33,7 @@ class RIR(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> RIR:
+        """Create a new RIR aggregate and emit a RIRCreated event."""
         rir = cls()
         rir.apply_event(
             RIRCreated(
@@ -51,6 +56,7 @@ class RIR(AggregateRoot):
         custom_fields: dict | None = None,
         tags: list[UUID] | None = None,
     ) -> None:
+        """Update mutable RIR fields and emit a RIRUpdated event."""
         if self._deleted:
             raise BusinessRuleViolationError("Cannot update a deleted RIR")
         self.apply_event(
@@ -65,6 +71,7 @@ class RIR(AggregateRoot):
         )
 
     def delete(self) -> None:
+        """Soft-delete the RIR and emit a RIRDeleted event."""
         if self._deleted:
             raise BusinessRuleViolationError("RIR is already deleted")
         self.apply_event(

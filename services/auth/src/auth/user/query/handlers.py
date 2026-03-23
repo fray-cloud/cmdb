@@ -1,15 +1,20 @@
+"""Query handlers for retrieving user data."""
+
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
 
-from auth.user.domain.repository import UserRepository
+from auth.user.domain import UserRepository
 from auth.user.query.dto import UserDTO
 
 
 class GetUserHandler(QueryHandler[UserDTO]):
+    """Handles fetching a single user by ID."""
+
     def __init__(self, repository: UserRepository) -> None:
         self._repository = repository
 
     async def handle(self, query: Query) -> UserDTO:
+        """Retrieve a user by ID or raise EntityNotFoundError."""
         user = await self._repository.find_by_id(query.user_id)
         if user is None:
             raise EntityNotFoundError(f"User {query.user_id} not found")
@@ -27,10 +32,13 @@ class GetUserHandler(QueryHandler[UserDTO]):
 
 
 class ListUsersHandler(QueryHandler[tuple[list[UserDTO], int]]):
+    """Handles paginated listing of users within a tenant."""
+
     def __init__(self, repository: UserRepository) -> None:
         self._repository = repository
 
     async def handle(self, query: Query) -> tuple[list[UserDTO], int]:
+        """Return a paginated list of users and total count."""
         users, total = await self._repository.find_all(
             query.tenant_id,
             offset=query.offset,

@@ -1,3 +1,5 @@
+"""Query definitions for VRF read operations."""
+
 from uuid import UUID
 
 from shared.cqrs.query import Query

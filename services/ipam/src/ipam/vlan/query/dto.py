@@ -1,3 +1,5 @@
+"""Data transfer objects for VLAN query results."""
+
 from datetime import datetime
 from uuid import UUID
 

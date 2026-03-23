@@ -1,9 +1,11 @@
+"""User data transfer objects for query responses."""
+
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
 
-from auth.user.domain.user import UserStatus
+from auth.user.domain import UserStatus
 
 
 class UserDTO(BaseModel):

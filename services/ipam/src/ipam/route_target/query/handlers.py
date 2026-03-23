@@ -1,3 +1,5 @@
+"""Route Target query handlers — retrieve single or listed Route Target read models."""
+
 from shared.api.filtering import FilterOperator, FilterParam
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
@@ -8,6 +10,8 @@ from ipam.shared.query_utils import build_common_filters
 
 
 class GetRouteTargetHandler(QueryHandler[RouteTargetDTO]):
+    """Handle GetRouteTargetQuery by fetching a single Route Target."""
+
     def __init__(self, read_model_repo: RouteTargetReadModelRepository) -> None:
         self._repo = read_model_repo
 
@@ -19,6 +23,8 @@ class GetRouteTargetHandler(QueryHandler[RouteTargetDTO]):
 
 
 class ListRouteTargetsHandler(QueryHandler[tuple[list[RouteTargetDTO], int]]):
+    """Handle ListRouteTargetsQuery by returning a paginated list of Route Targets."""
+
     def __init__(self, read_model_repo: RouteTargetReadModelRepository) -> None:
         self._repo = read_model_repo
 

@@ -1,20 +1,24 @@
+"""PostgreSQL-backed role repository implementation."""
+
 from uuid import UUID
 
 from sqlalchemy import func as sa_func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.role.domain.repository import RoleRepository
-from auth.role.domain.role import Role
-from auth.shared.domain.permission import Permission
+from auth.role.domain import Role, RoleRepository
+from auth.shared.domain import Permission
 from auth.shared.models import RoleModel
 
 
 class PostgresRoleRepository(RoleRepository):
+    """RoleRepository implementation using PostgreSQL via SQLAlchemy."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def find_by_id(self, entity_id: UUID) -> Role | None:
+        """Find a role by primary key."""
         result = await self._session.get(RoleModel, entity_id)
         return self._to_entity(result) if result else None
 
@@ -41,6 +45,7 @@ class PostgresRoleRepository(RoleRepository):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[Role], int]:
+        """Return a paginated list of roles and total count for a tenant."""
         count_stmt = select(sa_func.count()).select_from(RoleModel).where(RoleModel.tenant_id == tenant_id)
         total = (await self._session.execute(count_stmt)).scalar_one()
 

@@ -1,3 +1,5 @@
+"""Service domain events — ServiceCreated, ServiceUpdated, ServiceDeleted."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

@@ -1,3 +1,5 @@
+"""Role aggregate defining named permission sets for access control."""
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -7,10 +9,12 @@ from shared.domain.entity import Entity
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.domain_event import DomainEvent
 
-from auth.shared.domain.permission import Permission
+from auth.shared.domain import Permission
 
 
 class Role(Entity):
+    """Role aggregate root holding a set of permissions within a tenant."""
+
     name: str
     tenant_id: UUID
     description: str | None = None
@@ -34,6 +38,7 @@ class Role(Entity):
         description: str | None = None,
         permissions: list[Permission] | None = None,
     ) -> "Role":
+        """Create a new role with optional permissions."""
         return cls(
             name=name,
             tenant_id=tenant_id,

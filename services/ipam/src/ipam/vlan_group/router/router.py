@@ -1,3 +1,5 @@
+"""FastAPI router for VLANGroup CRUD endpoints."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -13,26 +15,23 @@ from ipam.shared.schemas import (
     BulkDeleteResponse,
     BulkUpdateResponse,
 )
-from ipam.vlan_group.command.commands import (
+from ipam.vlan_group.command import (
     BulkCreateVLANGroupsCommand,
+    BulkCreateVLANGroupsHandler,
     BulkDeleteVLANGroupsCommand,
+    BulkDeleteVLANGroupsHandler,
     BulkUpdateVLANGroupItem,
     BulkUpdateVLANGroupsCommand,
-    CreateVLANGroupCommand,
-    DeleteVLANGroupCommand,
-    UpdateVLANGroupCommand,
-)
-from ipam.vlan_group.command.handlers import (
-    BulkCreateVLANGroupsHandler,
-    BulkDeleteVLANGroupsHandler,
     BulkUpdateVLANGroupsHandler,
+    CreateVLANGroupCommand,
     CreateVLANGroupHandler,
+    DeleteVLANGroupCommand,
     DeleteVLANGroupHandler,
+    UpdateVLANGroupCommand,
     UpdateVLANGroupHandler,
 )
-from ipam.vlan_group.infra.repository import PostgresVLANGroupReadModelRepository
-from ipam.vlan_group.query.handlers import GetVLANGroupHandler, ListVLANGroupsHandler
-from ipam.vlan_group.query.queries import GetVLANGroupQuery, ListVLANGroupsQuery
+from ipam.vlan_group.infra import PostgresVLANGroupReadModelRepository
+from ipam.vlan_group.query import GetVLANGroupHandler, GetVLANGroupQuery, ListVLANGroupsHandler, ListVLANGroupsQuery
 from ipam.vlan_group.router.schemas import (
     BulkUpdateVLANGroupItem as BulkUpdateVLANGroupItemSchema,
 )
@@ -96,6 +95,7 @@ async def create_vlan_group(
     body: CreateVLANGroupRequest,
     request: Request,
 ) -> VLANGroupResponse:
+    """Create a new VLAN group."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -120,6 +120,7 @@ async def list_vlan_groups(
     sort_dir: str = "asc",
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> VLANGroupListResponse:
+    """List VLAN groups with pagination, filtering, and sorting."""
     custom_field_filters = json.loads(custom_fields) if custom_fields else None
     items, total = await query_bus.dispatch(
         ListVLANGroupsQuery(
@@ -150,6 +151,7 @@ async def bulk_update_vlan_groups(
     body: list[BulkUpdateVLANGroupItemSchema],
     request: Request,
 ) -> BulkUpdateResponse:
+    """Bulk update multiple VLAN groups."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
@@ -169,6 +171,7 @@ async def bulk_delete_vlan_groups(
     body: BulkDeleteRequest,
     request: Request,
 ) -> BulkDeleteResponse:
+    """Bulk delete multiple VLAN groups by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteVLANGroupsCommand(ids=body.ids))
@@ -181,6 +184,7 @@ async def get_vlan_group(
     vlan_group_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> VLANGroupResponse:
+    """Retrieve a single VLAN group by ID."""
     result = await query_bus.dispatch(GetVLANGroupQuery(vlan_group_id=vlan_group_id))
     return VLANGroupResponse(**result.model_dump())
 
@@ -191,6 +195,7 @@ async def update_vlan_group(
     body: UpdateVLANGroupRequest,
     request: Request,
 ) -> VLANGroupResponse:
+    """Partially update a VLAN group."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -207,6 +212,7 @@ async def delete_vlan_group(
     vlan_group_id: UUID,
     request: Request,
 ) -> None:
+    """Delete a VLAN group by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteVLANGroupCommand(vlan_group_id=vlan_group_id))
@@ -222,6 +228,7 @@ async def bulk_create_vlan_groups(
     body: list[CreateVLANGroupRequest],
     request: Request,
 ) -> BulkCreateResponse:
+    """Bulk create multiple VLAN groups."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(

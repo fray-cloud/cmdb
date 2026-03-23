@@ -1,3 +1,5 @@
+"""GraphQL schema definition — Strawberry query types for all IPAM entities."""
+
 import uuid
 
 import strawberry

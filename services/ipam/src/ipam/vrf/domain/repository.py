@@ -1,3 +1,5 @@
+"""Abstract repository interface for the VRF aggregate."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
@@ -5,6 +7,8 @@ from ipam.vrf.domain.vrf import VRF
 
 
 class VRFRepository(ABC):
+    """Domain repository interface for persisting and retrieving VRF aggregates."""
+
     @abstractmethod
     async def find_by_id(self, vrf_id: UUID) -> VRF | None: ...
 

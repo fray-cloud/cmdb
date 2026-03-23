@@ -1,3 +1,5 @@
+"""FastAPI router for Prefix CRUD and utility endpoints."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,41 +9,37 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.ip_address.infra.repository import PostgresIPAddressReadModelRepository
-from ipam.prefix.command.commands import (
+from ipam.ip_address.infra import PostgresIPAddressReadModelRepository
+from ipam.prefix.command import (
     BulkCreatePrefixesCommand,
+    BulkCreatePrefixesHandler,
     BulkDeletePrefixesCommand,
+    BulkDeletePrefixesHandler,
     BulkUpdatePrefixesCommand,
+    BulkUpdatePrefixesHandler,
     BulkUpdatePrefixItem,
     ChangePrefixStatusCommand,
-    CreatePrefixCommand,
-    DeletePrefixCommand,
-    UpdatePrefixCommand,
-)
-from ipam.prefix.command.handlers import (
-    BulkCreatePrefixesHandler,
-    BulkDeletePrefixesHandler,
-    BulkUpdatePrefixesHandler,
     ChangePrefixStatusHandler,
+    CreatePrefixCommand,
     CreatePrefixHandler,
+    DeletePrefixCommand,
     DeletePrefixHandler,
+    UpdatePrefixCommand,
     UpdatePrefixHandler,
 )
-from ipam.prefix.infra.repository import PostgresPrefixReadModelRepository
-from ipam.prefix.query.handlers import (
+from ipam.prefix.infra import PostgresPrefixReadModelRepository
+from ipam.prefix.query import (
     GetAvailableIPsHandler,
-    GetAvailablePrefixesHandler,
-    GetPrefixChildrenHandler,
-    GetPrefixHandler,
-    GetPrefixUtilizationHandler,
-    ListPrefixesHandler,
-)
-from ipam.prefix.query.queries import (
     GetAvailableIPsQuery,
+    GetAvailablePrefixesHandler,
     GetAvailablePrefixesQuery,
+    GetPrefixChildrenHandler,
     GetPrefixChildrenQuery,
+    GetPrefixHandler,
     GetPrefixQuery,
+    GetPrefixUtilizationHandler,
     GetPrefixUtilizationQuery,
+    ListPrefixesHandler,
     ListPrefixesQuery,
 )
 from ipam.prefix.router.schemas import (
@@ -124,6 +122,7 @@ async def create_prefix(
     body: CreatePrefixRequest,
     request: Request,
 ) -> PrefixResponse:
+    """Create a new IP prefix."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -138,6 +137,7 @@ async def get_prefix(
     prefix_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> PrefixResponse:
+    """Retrieve a single prefix by ID."""
     result = await query_bus.dispatch(GetPrefixQuery(prefix_id=prefix_id))
     return PrefixResponse(**result.model_dump())
 
@@ -160,6 +160,7 @@ async def list_prefixes(
     sort_dir: str = "asc",
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> PrefixListResponse:
+    """List prefixes with pagination, filtering, and sorting."""
     custom_field_filters = json.loads(custom_fields) if custom_fields else None
     items, total = await query_bus.dispatch(
         ListPrefixesQuery(
@@ -194,6 +195,7 @@ async def update_prefix(
     body: UpdatePrefixRequest,
     request: Request,
 ) -> PrefixResponse:
+    """Partially update a prefix's mutable fields."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -209,6 +211,7 @@ async def change_prefix_status(
     body: ChangeStatusRequest,
     request: Request,
 ) -> PrefixResponse:
+    """Change the lifecycle status of a prefix."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -223,6 +226,7 @@ async def delete_prefix(
     prefix_id: UUID,
     request: Request,
 ) -> None:
+    """Delete a prefix by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeletePrefixCommand(prefix_id=prefix_id))
@@ -234,6 +238,7 @@ async def bulk_update_prefixes(
     body: list[BulkUpdatePrefixSchema],
     request: Request,
 ) -> BulkUpdateResponse:
+    """Bulk update multiple prefixes."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
@@ -252,6 +257,7 @@ async def bulk_delete_prefixes(
     body: BulkDeleteRequest,
     request: Request,
 ) -> BulkDeleteResponse:
+    """Bulk delete multiple prefixes by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeletePrefixesCommand(ids=body.ids))
@@ -264,6 +270,7 @@ async def bulk_create_prefixes(
     body: list[CreatePrefixRequest],
     request: Request,
 ) -> BulkCreateResponse:
+    """Bulk create multiple prefixes."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     commands = [CreatePrefixCommand(**b.model_dump()) for b in body]
@@ -277,6 +284,7 @@ async def get_prefix_children(
     prefix_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> list[PrefixResponse]:
+    """Get all child prefixes contained within a parent prefix."""
     children = await query_bus.dispatch(GetPrefixChildrenQuery(prefix_id=prefix_id))
     return [PrefixResponse(**c.model_dump()) for c in children]
 
@@ -286,6 +294,7 @@ async def get_prefix_utilization(
     prefix_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> dict:
+    """Get address space utilization for a prefix."""
     utilization = await query_bus.dispatch(GetPrefixUtilizationQuery(prefix_id=prefix_id))
     return {"utilization": utilization}
 
@@ -296,6 +305,7 @@ async def get_available_prefixes(
     desired_prefix_length: int = 24,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> dict:
+    """Find available sub-prefixes of the desired length."""
     available = await query_bus.dispatch(
         GetAvailablePrefixesQuery(prefix_id=prefix_id, desired_prefix_length=desired_prefix_length)
     )
@@ -308,5 +318,6 @@ async def get_available_ips(
     count: int = 1,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> dict:
+    """Find available IP addresses within a prefix."""
     available = await query_bus.dispatch(GetAvailableIPsQuery(prefix_id=prefix_id, count=count))
     return {"available_ips": available}

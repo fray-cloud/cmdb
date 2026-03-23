@@ -1,3 +1,5 @@
+"""Event projectors that sync IPAddress domain events to the read model."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent
@@ -20,6 +22,7 @@ async def _update_model(session_factory, model_cls, aggregate_id: UUID, values: 
 
 
 async def handle_ip_address_created(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPAddressCreated event into the read model via upsert."""
     assert isinstance(event, IPAddressCreated)
     async with session_factory() as session:
         stmt = insert(IPAddressReadModel).values(
@@ -40,6 +43,7 @@ async def handle_ip_address_created(session_factory, cache, event: DomainEvent) 
 
 
 async def handle_ip_address_updated(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPAddressUpdated event by updating changed fields."""
     assert isinstance(event, IPAddressUpdated)
     values: dict = {}
     if event.dns_name is not None:
@@ -55,9 +59,11 @@ async def handle_ip_address_updated(session_factory, cache, event: DomainEvent) 
 
 
 async def handle_ip_address_status_changed(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPAddressStatusChanged event by updating the status field."""
     assert isinstance(event, IPAddressStatusChanged)
     await _update_model(session_factory, IPAddressReadModel, event.aggregate_id, {"status": event.new_status})
 
 
 async def handle_ip_address_deleted(session_factory, cache, event: DomainEvent) -> None:
+    """Project an IPAddressDeleted event by marking the read model as deleted."""
     await _update_model(session_factory, IPAddressReadModel, event.aggregate_id, {"is_deleted": True})

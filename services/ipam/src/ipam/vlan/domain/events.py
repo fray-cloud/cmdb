@@ -1,3 +1,5 @@
+"""Domain events emitted by the VLAN aggregate."""
+
 from uuid import UUID
 
 from shared.event.domain_event import DomainEvent

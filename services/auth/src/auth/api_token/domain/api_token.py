@@ -1,3 +1,5 @@
+"""API token aggregate for programmatic access credentials."""
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -7,10 +9,12 @@ from shared.domain.entity import Entity
 from shared.domain.exceptions import BusinessRuleViolationError
 from shared.event.domain_event import DomainEvent
 
-from auth.shared.domain.events import TokenGenerated, TokenRevoked
+from auth.shared.domain import TokenGenerated, TokenRevoked
 
 
 class APIToken(Entity):
+    """API token aggregate root managing scoped, revocable access keys."""
+
     user_id: UUID
     tenant_id: UUID
     key_hash: str
@@ -41,6 +45,7 @@ class APIToken(Entity):
         expires_at: datetime | None = None,
         allowed_ips: list[str] | None = None,
     ) -> "APIToken":
+        """Create a new API token and emit a TokenGenerated event."""
         token = cls(
             user_id=user_id,
             tenant_id=tenant_id,

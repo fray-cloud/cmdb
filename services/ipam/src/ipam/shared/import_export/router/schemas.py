@@ -1,3 +1,5 @@
+"""Import/Export REST API request and response schemas."""
+
 from pydantic import BaseModel
 
 

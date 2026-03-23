@@ -1,3 +1,5 @@
+"""Service query handlers — retrieve single or listed Service read models."""
+
 from shared.cqrs.query import Query, QueryHandler
 from shared.domain.exceptions import EntityNotFoundError
 
@@ -7,6 +9,8 @@ from ipam.shared.query_utils import build_common_filters
 
 
 class GetServiceHandler(QueryHandler[ServiceDTO]):
+    """Handle GetServiceQuery by fetching a single Service from the read model."""
+
     def __init__(self, read_model_repo: ServiceReadModelRepository) -> None:
         self._repo = read_model_repo
 
@@ -18,6 +22,8 @@ class GetServiceHandler(QueryHandler[ServiceDTO]):
 
 
 class ListServicesHandler(QueryHandler[tuple[list[ServiceDTO], int]]):
+    """Handle ListServicesQuery by returning a paginated list of Services."""
+
     def __init__(self, read_model_repo: ServiceReadModelRepository) -> None:
         self._repo = read_model_repo
 

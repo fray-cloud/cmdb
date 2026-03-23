@@ -1,3 +1,5 @@
+"""RIR command handlers — process RIR create, update, delete, and bulk commands."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.rir import RIR
 from ipam.rir.command.commands import (
     BulkCreateRIRsCommand,
     BulkDeleteRIRsCommand,
@@ -15,11 +18,12 @@ from ipam.rir.command.commands import (
     DeleteRIRCommand,
     UpdateRIRCommand,
 )
-from ipam.rir.domain.rir import RIR
 from ipam.rir.query.read_model import RIRReadModelRepository
 
 
 class CreateRIRHandler(CommandHandler[UUID]):
+    """Handle CreateRIRCommand by creating a new RIR aggregate."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -31,6 +35,7 @@ class CreateRIRHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateRIRCommand) -> UUID:
+        """Create a RIR, persist events, update read model, and publish to Kafka."""
         rir = RIR.create(
             name=command.name,
             is_private=command.is_private,
@@ -46,6 +51,8 @@ class CreateRIRHandler(CommandHandler[UUID]):
 
 
 class UpdateRIRHandler(CommandHandler[None]):
+    """Handle UpdateRIRCommand by applying updates to an existing RIR."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -57,6 +64,7 @@ class UpdateRIRHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateRIRCommand) -> None:
+        """Load the RIR, apply updates, persist events, and update the read model."""
         rir = await self._event_store.load_aggregate(RIR, command.rir_id)
         if rir is None:
             raise EntityNotFoundError(f"RIR {command.rir_id} not found")
@@ -77,6 +85,8 @@ class UpdateRIRHandler(CommandHandler[None]):
 
 
 class DeleteRIRHandler(CommandHandler[None]):
+    """Handle DeleteRIRCommand by soft-deleting an existing RIR."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -88,6 +98,7 @@ class DeleteRIRHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteRIRCommand) -> None:
+        """Load the RIR, mark as deleted, persist events, and update the read model."""
         rir = await self._event_store.load_aggregate(RIR, command.rir_id)
         if rir is None:
             raise EntityNotFoundError(f"RIR {command.rir_id} not found")
@@ -103,6 +114,8 @@ class DeleteRIRHandler(CommandHandler[None]):
 
 
 class BulkCreateRIRsHandler(CommandHandler[list[UUID]]):
+    """Handle BulkCreateRIRsCommand by creating multiple RIRs in sequence."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -134,6 +147,8 @@ class BulkCreateRIRsHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateRIRsHandler(CommandHandler[int]):
+    """Handle BulkUpdateRIRsCommand by updating multiple RIRs in sequence."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -167,6 +182,8 @@ class BulkUpdateRIRsHandler(CommandHandler[int]):
 
 
 class BulkDeleteRIRsHandler(CommandHandler[int]):
+    """Handle BulkDeleteRIRsCommand by soft-deleting multiple RIRs in sequence."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,

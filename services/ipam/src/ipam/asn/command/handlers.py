@@ -1,3 +1,5 @@
+"""ASN command handlers — process ASN create, update, delete, and bulk commands."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.asn import ASN
 from ipam.asn.command.commands import (
     BulkCreateASNsCommand,
     BulkDeleteASNsCommand,
@@ -15,7 +18,6 @@ from ipam.asn.command.commands import (
     DeleteASNCommand,
     UpdateASNCommand,
 )
-from ipam.asn.domain.asn import ASN
 from ipam.asn.query.read_model import ASNReadModelRepository
 
 # ---------------------------------------------------------------------------
@@ -24,6 +26,8 @@ from ipam.asn.query.read_model import ASNReadModelRepository
 
 
 class CreateASNHandler(CommandHandler[UUID]):
+    """Handle CreateASNCommand by creating a new ASN aggregate."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -35,6 +39,7 @@ class CreateASNHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateASNCommand) -> UUID:
+        """Create an ASN, persist events, update read model, and publish to Kafka."""
         asn = ASN.create(
             asn=command.asn,
             rir_id=command.rir_id,
@@ -51,6 +56,8 @@ class CreateASNHandler(CommandHandler[UUID]):
 
 
 class UpdateASNHandler(CommandHandler[None]):
+    """Handle UpdateASNCommand by applying updates to an existing ASN."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -62,6 +69,7 @@ class UpdateASNHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateASNCommand) -> None:
+        """Load the ASN, apply updates, persist events, and update the read model."""
         asn = await self._event_store.load_aggregate(ASN, command.asn_id)
         if asn is None:
             raise EntityNotFoundError(f"ASN {command.asn_id} not found")
@@ -82,6 +90,8 @@ class UpdateASNHandler(CommandHandler[None]):
 
 
 class DeleteASNHandler(CommandHandler[None]):
+    """Handle DeleteASNCommand by soft-deleting an existing ASN."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -93,6 +103,7 @@ class DeleteASNHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteASNCommand) -> None:
+        """Load the ASN, mark as deleted, persist events, and update the read model."""
         asn = await self._event_store.load_aggregate(ASN, command.asn_id)
         if asn is None:
             raise EntityNotFoundError(f"ASN {command.asn_id} not found")
@@ -113,6 +124,8 @@ class DeleteASNHandler(CommandHandler[None]):
 
 
 class BulkCreateASNsHandler(CommandHandler[list[UUID]]):
+    """Handle BulkCreateASNsCommand by creating multiple ASNs in sequence."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -145,6 +158,8 @@ class BulkCreateASNsHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateASNsHandler(CommandHandler[int]):
+    """Handle BulkUpdateASNsCommand by updating multiple ASNs in sequence."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -178,6 +193,8 @@ class BulkUpdateASNsHandler(CommandHandler[int]):
 
 
 class BulkDeleteASNsHandler(CommandHandler[int]):
+    """Handle BulkDeleteASNsCommand by soft-deleting multiple ASNs in sequence."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,

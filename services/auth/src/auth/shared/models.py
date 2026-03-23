@@ -1,3 +1,5 @@
+"""SQLAlchemy ORM models for the auth service."""
+
 from datetime import datetime
 from uuid import UUID
 

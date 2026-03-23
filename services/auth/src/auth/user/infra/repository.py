@@ -1,3 +1,5 @@
+"""PostgreSQL-backed user repository implementation."""
+
 from uuid import UUID
 
 from sqlalchemy import func as sa_func
@@ -5,15 +7,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.shared.models import UserGroupModel, UserModel, UserRoleModel
-from auth.user.domain.repository import UserRepository
-from auth.user.domain.user import User, UserStatus
+from auth.user.domain import User, UserRepository, UserStatus
 
 
 class PostgresUserRepository(UserRepository):
+    """UserRepository implementation using PostgreSQL via SQLAlchemy."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
     async def find_by_id(self, entity_id: UUID) -> User | None:
+        """Find a user by primary key."""
         result = await self._session.get(UserModel, entity_id)
         return self._to_entity(result) if result else None
 
@@ -33,6 +37,7 @@ class PostgresUserRepository(UserRepository):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[User], int]:
+        """Return a paginated list of users and total count for a tenant."""
         count_stmt = select(sa_func.count()).select_from(UserModel).where(UserModel.tenant_id == tenant_id)
         total = (await self._session.execute(count_stmt)).scalar_one()
 

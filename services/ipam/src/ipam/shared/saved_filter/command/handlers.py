@@ -1,3 +1,5 @@
+"""Saved filter command handlers — create, update, and delete saved filters."""
+
 from __future__ import annotations
 
 from uuid import UUID, uuid4
@@ -13,6 +15,8 @@ from ipam.shared.saved_filter.query.read_model import SavedFilterRepository
 
 
 class CreateSavedFilterHandler(CommandHandler[UUID]):
+    """Handle CreateSavedFilterCommand by persisting a new saved filter."""
+
     def __init__(self, repo: SavedFilterRepository) -> None:
         self._repo = repo
 
@@ -32,6 +36,8 @@ class CreateSavedFilterHandler(CommandHandler[UUID]):
 
 
 class UpdateSavedFilterHandler(CommandHandler[None]):
+    """Handle UpdateSavedFilterCommand by updating an existing saved filter."""
+
     def __init__(self, repo: SavedFilterRepository) -> None:
         self._repo = repo
 
@@ -53,6 +59,8 @@ class UpdateSavedFilterHandler(CommandHandler[None]):
 
 
 class DeleteSavedFilterHandler(CommandHandler[None]):
+    """Handle DeleteSavedFilterCommand by removing a saved filter."""
+
     def __init__(self, repo: SavedFilterRepository) -> None:
         self._repo = repo
 

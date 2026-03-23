@@ -1,3 +1,5 @@
+"""Role repository interface for persistence abstraction."""
+
 from abc import abstractmethod
 from uuid import UUID
 
@@ -7,6 +9,8 @@ from auth.role.domain.role import Role
 
 
 class RoleRepository(Repository[Role]):
+    """Abstract repository defining persistence operations for Role aggregates."""
+
     @abstractmethod
     async def find_by_name(self, name: str, tenant_id: UUID) -> Role | None: ...
 

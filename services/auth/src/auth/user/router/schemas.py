@@ -1,9 +1,11 @@
+"""Request and response schemas for user endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from auth.user.domain.user import UserStatus
+from auth.user.domain import UserStatus
 
 
 class RegisterRequest(BaseModel):

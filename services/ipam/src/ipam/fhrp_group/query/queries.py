@@ -1,3 +1,5 @@
+"""FHRP Group query definitions — get and list queries."""
+
 from uuid import UUID
 
 from shared.cqrs.query import Query

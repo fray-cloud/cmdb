@@ -1,16 +1,20 @@
+"""Command handlers for user registration, password changes, and role management."""
+
 from uuid import UUID
 
 from shared.cqrs.command import Command, CommandHandler
 from shared.domain.exceptions import AuthorizationError, ConflictError, EntityNotFoundError
 from shared.messaging.producer import KafkaEventProducer
 
-from auth.role.domain.repository import RoleRepository
+from auth.role import RoleRepository
 from auth.shared.security import BcryptPasswordService
-from auth.user.domain.repository import UserRepository
+from auth.user.domain import UserRepository
 from auth.user.domain.user import User
 
 
 class RegisterUserHandler(CommandHandler[UUID]):
+    """Handles user registration with duplicate-email checking."""
+
     def __init__(
         self,
         repository: UserRepository,
@@ -22,6 +26,7 @@ class RegisterUserHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: Command) -> UUID:
+        """Register a new user and publish domain events."""
         existing = await self._repository.find_by_email(command.email, command.tenant_id)
         if existing is not None:
             raise ConflictError(f"User with email '{command.email}' already exists")
@@ -44,6 +49,8 @@ class RegisterUserHandler(CommandHandler[UUID]):
 
 
 class ChangePasswordHandler(CommandHandler[None]):
+    """Handles password change after verifying the current password."""
+
     def __init__(
         self,
         repository: UserRepository,
@@ -53,6 +60,7 @@ class ChangePasswordHandler(CommandHandler[None]):
         self._password_service = password_service
 
     async def handle(self, command: Command) -> None:
+        """Verify old password and update to the new password hash."""
         user = await self._repository.find_by_id(command.user_id)
         if user is None:
             raise EntityNotFoundError(f"User {command.user_id} not found")
@@ -66,6 +74,8 @@ class ChangePasswordHandler(CommandHandler[None]):
 
 
 class AssignRoleHandler(CommandHandler[None]):
+    """Handles assigning a role to a user."""
+
     def __init__(
         self,
         repository: UserRepository,
@@ -77,6 +87,7 @@ class AssignRoleHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: Command) -> None:
+        """Assign a role to the user and publish domain events."""
         user = await self._repository.find_by_id(command.user_id)
         if user is None:
             raise EntityNotFoundError(f"User {command.user_id} not found")
@@ -93,6 +104,8 @@ class AssignRoleHandler(CommandHandler[None]):
 
 
 class RemoveRoleHandler(CommandHandler[None]):
+    """Handles removing a role from a user."""
+
     def __init__(
         self,
         repository: UserRepository,
@@ -102,6 +115,7 @@ class RemoveRoleHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: Command) -> None:
+        """Remove a role from the user and publish domain events."""
         user = await self._repository.find_by_id(command.user_id)
         if user is None:
             raise EntityNotFoundError(f"User {command.user_id} not found")

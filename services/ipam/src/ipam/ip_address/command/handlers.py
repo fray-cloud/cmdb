@@ -1,3 +1,5 @@
+"""Command handlers for IPAddress aggregate write operations."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import ConflictError, EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.ip_address import IPAddress, IPAddressStatus
 from ipam.ip_address.command.commands import (
     BulkCreateIPAddressesCommand,
     BulkDeleteIPAddressesCommand,
@@ -16,12 +19,12 @@ from ipam.ip_address.command.commands import (
     DeleteIPAddressCommand,
     UpdateIPAddressCommand,
 )
-from ipam.ip_address.domain.ip_address import IPAddress
-from ipam.ip_address.domain.value_objects import IPAddressStatus
 from ipam.ip_address.query.read_model import IPAddressReadModelRepository
 
 
 class CreateIPAddressHandler(CommandHandler[UUID]):
+    """Handle creating a new IP address with uniqueness validation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -33,6 +36,7 @@ class CreateIPAddressHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateIPAddressCommand) -> UUID:
+        """Execute the command and return the result."""
         if await self._read_model_repo.exists_in_vrf(command.address, command.vrf_id):
             raise ConflictError(f"IP address {command.address} already exists in this VRF scope")
 
@@ -54,6 +58,8 @@ class CreateIPAddressHandler(CommandHandler[UUID]):
 
 
 class UpdateIPAddressHandler(CommandHandler[None]):
+    """Handle updating an existing IP address."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -65,6 +71,7 @@ class UpdateIPAddressHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateIPAddressCommand) -> None:
+        """Execute the command and return the result."""
         ip = await self._event_store.load_aggregate(IPAddress, command.ip_id)
         if ip is None:
             raise EntityNotFoundError(f"IP address {command.ip_id} not found")
@@ -83,6 +90,8 @@ class UpdateIPAddressHandler(CommandHandler[None]):
 
 
 class ChangeIPAddressStatusHandler(CommandHandler[None]):
+    """Handle changing the lifecycle status of an IP address."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -94,6 +103,7 @@ class ChangeIPAddressStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangeIPAddressStatusCommand) -> None:
+        """Execute the command and return the result."""
         ip = await self._event_store.load_aggregate(IPAddress, command.ip_id)
         if ip is None:
             raise EntityNotFoundError(f"IP address {command.ip_id} not found")
@@ -107,6 +117,8 @@ class ChangeIPAddressStatusHandler(CommandHandler[None]):
 
 
 class DeleteIPAddressHandler(CommandHandler[None]):
+    """Handle soft-deleting an IP address."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -118,6 +130,7 @@ class DeleteIPAddressHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteIPAddressCommand) -> None:
+        """Execute the command and return the result."""
         ip = await self._event_store.load_aggregate(IPAddress, command.ip_id)
         if ip is None:
             raise EntityNotFoundError(f"IP address {command.ip_id} not found")
@@ -131,6 +144,8 @@ class DeleteIPAddressHandler(CommandHandler[None]):
 
 
 class BulkCreateIPAddressesHandler(CommandHandler[list[UUID]]):
+    """Handle creating multiple IP addresses in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -142,6 +157,7 @@ class BulkCreateIPAddressesHandler(CommandHandler[list[UUID]]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkCreateIPAddressesCommand) -> list[UUID]:
+        """Execute the command and return the result."""
         results: list[UUID] = []
         all_events: list = []
         for item in command.items:
@@ -168,6 +184,8 @@ class BulkCreateIPAddressesHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateIPAddressesHandler(CommandHandler[int]):
+    """Handle updating multiple IP addresses in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -179,6 +197,7 @@ class BulkUpdateIPAddressesHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkUpdateIPAddressesCommand) -> int:
+        """Execute the command and return the result."""
         all_events: list = []
         for item in command.items:
             ip = await self._event_store.load_aggregate(IPAddress, item.ip_id)
@@ -201,6 +220,8 @@ class BulkUpdateIPAddressesHandler(CommandHandler[int]):
 
 
 class BulkDeleteIPAddressesHandler(CommandHandler[int]):
+    """Handle deleting multiple IP addresses in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -212,6 +233,7 @@ class BulkDeleteIPAddressesHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkDeleteIPAddressesCommand) -> int:
+        """Execute the command and return the result."""
         all_events: list = []
         for agg_id in command.ids:
             ip = await self._event_store.load_aggregate(IPAddress, agg_id)

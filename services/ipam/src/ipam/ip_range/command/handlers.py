@@ -1,3 +1,5 @@
+"""Command handlers for IPRange aggregate write operations."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -7,6 +9,7 @@ from shared.domain.exceptions import EntityNotFoundError
 from shared.event.pg_store import PostgresEventStore
 from shared.messaging.producer import KafkaEventProducer
 
+from ipam.ip_range import IPRange, IPRangeStatus
 from ipam.ip_range.command.commands import (
     BulkCreateIPRangesCommand,
     BulkDeleteIPRangesCommand,
@@ -16,12 +19,12 @@ from ipam.ip_range.command.commands import (
     DeleteIPRangeCommand,
     UpdateIPRangeCommand,
 )
-from ipam.ip_range.domain.ip_range import IPRange
-from ipam.ip_range.domain.value_objects import IPRangeStatus
 from ipam.ip_range.query.read_model import IPRangeReadModelRepository
 
 
 class CreateIPRangeHandler(CommandHandler[UUID]):
+    """Handle creating a new IP range."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -33,6 +36,7 @@ class CreateIPRangeHandler(CommandHandler[UUID]):
         self._event_producer = event_producer
 
     async def handle(self, command: CreateIPRangeCommand) -> UUID:
+        """Create an IP range, store events, update read model, and publish to Kafka."""
         ip_range = IPRange.create(
             start_address=command.start_address,
             end_address=command.end_address,
@@ -51,6 +55,8 @@ class CreateIPRangeHandler(CommandHandler[UUID]):
 
 
 class UpdateIPRangeHandler(CommandHandler[None]):
+    """Handle updating an existing IP range."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -62,6 +68,7 @@ class UpdateIPRangeHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: UpdateIPRangeCommand) -> None:
+        """Load the IP range, apply updates, and persist new events."""
         ip_range = await self._event_store.load_aggregate(IPRange, command.range_id)
         if ip_range is None:
             raise EntityNotFoundError(f"IP range {command.range_id} not found")
@@ -82,6 +89,8 @@ class UpdateIPRangeHandler(CommandHandler[None]):
 
 
 class ChangeIPRangeStatusHandler(CommandHandler[None]):
+    """Handle changing the lifecycle status of an IP range."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -93,6 +102,7 @@ class ChangeIPRangeStatusHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: ChangeIPRangeStatusCommand) -> None:
+        """Transition the IP range to the requested status."""
         ip_range = await self._event_store.load_aggregate(IPRange, command.range_id)
         if ip_range is None:
             raise EntityNotFoundError(f"IP range {command.range_id} not found")
@@ -108,6 +118,8 @@ class ChangeIPRangeStatusHandler(CommandHandler[None]):
 
 
 class DeleteIPRangeHandler(CommandHandler[None]):
+    """Handle soft-deleting an IP range."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -119,6 +131,7 @@ class DeleteIPRangeHandler(CommandHandler[None]):
         self._event_producer = event_producer
 
     async def handle(self, command: DeleteIPRangeCommand) -> None:
+        """Mark the IP range as deleted and publish the deletion event."""
         ip_range = await self._event_store.load_aggregate(IPRange, command.range_id)
         if ip_range is None:
             raise EntityNotFoundError(f"IP range {command.range_id} not found")
@@ -134,6 +147,8 @@ class DeleteIPRangeHandler(CommandHandler[None]):
 
 
 class BulkCreateIPRangesHandler(CommandHandler[list[UUID]]):
+    """Handle creating multiple IP ranges in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -145,6 +160,7 @@ class BulkCreateIPRangesHandler(CommandHandler[list[UUID]]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkCreateIPRangesCommand) -> list[UUID]:
+        """Create each IP range, persist events, and return all new IDs."""
         results: list[UUID] = []
         all_events: list = []
         for item in command.items:
@@ -168,6 +184,8 @@ class BulkCreateIPRangesHandler(CommandHandler[list[UUID]]):
 
 
 class BulkUpdateIPRangesHandler(CommandHandler[int]):
+    """Handle updating multiple IP ranges in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -179,6 +197,7 @@ class BulkUpdateIPRangesHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkUpdateIPRangesCommand) -> int:
+        """Apply updates to each IP range and return the count of updated items."""
         all_events: list = []
         for item in command.items:
             ip_range = await self._event_store.load_aggregate(IPRange, item.range_id)
@@ -201,6 +220,8 @@ class BulkUpdateIPRangesHandler(CommandHandler[int]):
 
 
 class BulkDeleteIPRangesHandler(CommandHandler[int]):
+    """Handle deleting multiple IP ranges in a single operation."""
+
     def __init__(
         self,
         event_store: PostgresEventStore,
@@ -212,6 +233,7 @@ class BulkDeleteIPRangesHandler(CommandHandler[int]):
         self._event_producer = event_producer
 
     async def handle(self, command: BulkDeleteIPRangesCommand) -> int:
+        """Delete each IP range and return the count of deleted items."""
         all_events: list = []
         for agg_id in command.ids:
             ip_range = await self._event_store.load_aggregate(IPRange, agg_id)

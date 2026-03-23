@@ -3,15 +3,8 @@
 from uuid import uuid4
 
 import pytest
-from ipam.ip_range.domain.events import (
-    IPRangeCreated,
-    IPRangeDeleted,
-    IPRangeStatusChanged,
-    IPRangeUpdated,
-)
-from ipam.ip_range.domain.ip_range import IPRange
-from ipam.ip_range.domain.value_objects import IPRangeStatus
-from ipam.shared.value_objects import IPAddressValue
+from ipam.ip_range import IPRange, IPRangeCreated, IPRangeDeleted, IPRangeStatus, IPRangeStatusChanged, IPRangeUpdated
+from ipam.shared import IPAddressValue
 from shared.domain.exceptions import BusinessRuleViolationError
 
 # ---------------------------------------------------------------------------

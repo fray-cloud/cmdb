@@ -1,3 +1,5 @@
+"""IPAM shared value objects — IP address and route distinguisher types."""
+
 import ipaddress
 
 from pydantic import field_validator
@@ -5,6 +7,8 @@ from shared.domain.value_object import ValueObject
 
 
 class IPAddressValue(ValueObject):
+    """Validated IP address value object supporting both IPv4 and IPv6."""
+
     address: str
 
     @field_validator("address")
@@ -23,6 +27,8 @@ class IPAddressValue(ValueObject):
 
 
 class RouteDistinguisher(ValueObject):
+    """BGP Route Distinguisher value object in 'ASN:NN' or 'IP:NN' format."""
+
     rd: str
 
     @field_validator("rd")

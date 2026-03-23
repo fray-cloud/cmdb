@@ -1,3 +1,5 @@
+"""ASN SQLAlchemy read model — denormalized projection table for ASN queries."""
+
 from datetime import datetime
 from uuid import UUID
 

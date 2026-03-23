@@ -1,3 +1,5 @@
+"""API token REST API endpoints for creation, listing, and revocation."""
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
@@ -5,11 +7,14 @@ from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.api_token.command.commands import CreateAPITokenCommand, RevokeAPITokenCommand
-from auth.api_token.command.handlers import CreateAPITokenHandler, RevokeAPITokenHandler
-from auth.api_token.infra.repository import PostgresAPITokenRepository
-from auth.api_token.query.handlers import ListAPITokensHandler
-from auth.api_token.query.queries import ListAPITokensQuery
+from auth.api_token.command import (
+    CreateAPITokenCommand,
+    CreateAPITokenHandler,
+    RevokeAPITokenCommand,
+    RevokeAPITokenHandler,
+)
+from auth.api_token.infra import PostgresAPITokenRepository
+from auth.api_token.query import ListAPITokensHandler, ListAPITokensQuery
 from auth.api_token.router.schemas import APITokenListResponse, APITokenResponse, CreateAPITokenRequest
 from auth.shared.dependencies import get_current_user
 
@@ -55,6 +60,7 @@ async def create_api_token(
     current_user: dict = Depends(get_current_user),  # noqa: B008
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
 ) -> APITokenResponse:
+    """Create a new API token for the current user."""
     result = await command_bus.dispatch(
         CreateAPITokenCommand(
             user_id=current_user["user_id"],
@@ -74,6 +80,7 @@ async def list_api_tokens(
     params: OffsetParams = Depends(),  # noqa: B008
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> APITokenListResponse:
+    """List API tokens for the current user with pagination."""
     items, total = await query_bus.dispatch(
         ListAPITokensQuery(
             user_id=current_user["user_id"],
@@ -98,4 +105,5 @@ async def revoke_api_token(
     _current_user: dict = Depends(get_current_user),  # noqa: B008
     command_bus: CommandBus = Depends(_get_command_bus),  # noqa: B008
 ) -> None:
+    """Revoke an API token by ID."""
     await command_bus.dispatch(RevokeAPITokenCommand(token_id=token_id))

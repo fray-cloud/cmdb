@@ -1,3 +1,5 @@
+"""Global search query definitions."""
+
 from shared.cqrs.query import Query
 
 

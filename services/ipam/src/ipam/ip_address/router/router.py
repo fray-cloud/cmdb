@@ -1,3 +1,5 @@
+"""FastAPI router for IPAddress CRUD endpoints."""
+
 import json
 from datetime import datetime
 from uuid import UUID
@@ -7,28 +9,25 @@ from fastapi import Query as QueryParam
 from shared.api.pagination import OffsetParams
 from shared.cqrs.bus import CommandBus, QueryBus
 
-from ipam.ip_address.command.commands import (
+from ipam.ip_address.command import (
     BulkCreateIPAddressesCommand,
+    BulkCreateIPAddressesHandler,
     BulkDeleteIPAddressesCommand,
+    BulkDeleteIPAddressesHandler,
     BulkUpdateIPAddressesCommand,
+    BulkUpdateIPAddressesHandler,
     BulkUpdateIPAddressItem,
     ChangeIPAddressStatusCommand,
-    CreateIPAddressCommand,
-    DeleteIPAddressCommand,
-    UpdateIPAddressCommand,
-)
-from ipam.ip_address.command.handlers import (
-    BulkCreateIPAddressesHandler,
-    BulkDeleteIPAddressesHandler,
-    BulkUpdateIPAddressesHandler,
     ChangeIPAddressStatusHandler,
+    CreateIPAddressCommand,
     CreateIPAddressHandler,
+    DeleteIPAddressCommand,
     DeleteIPAddressHandler,
+    UpdateIPAddressCommand,
     UpdateIPAddressHandler,
 )
-from ipam.ip_address.infra.repository import PostgresIPAddressReadModelRepository
-from ipam.ip_address.query.handlers import GetIPAddressHandler, ListIPAddressesHandler
-from ipam.ip_address.query.queries import GetIPAddressQuery, ListIPAddressesQuery
+from ipam.ip_address.infra import PostgresIPAddressReadModelRepository
+from ipam.ip_address.query import GetIPAddressHandler, GetIPAddressQuery, ListIPAddressesHandler, ListIPAddressesQuery
 from ipam.ip_address.router.schemas import (
     BulkUpdateIPAddressItem as BulkUpdateIPAddressItemSchema,
 )
@@ -112,6 +111,7 @@ async def create_ip_address(
     body: CreateIPAddressRequest,
     request: Request,
 ) -> IPAddressResponse:
+    """Create a new IP address."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -138,6 +138,7 @@ async def list_ip_addresses(
     sort_dir: str = "asc",
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> IPAddressListResponse:
+    """List IP addresses with pagination, filtering, and sorting."""
     custom_field_filters = json.loads(custom_fields) if custom_fields else None
     items, total = await query_bus.dispatch(
         ListIPAddressesQuery(
@@ -170,6 +171,7 @@ async def bulk_update_ip_addresses(
     body: list[BulkUpdateIPAddressItemSchema],
     request: Request,
 ) -> BulkUpdateResponse:
+    """Bulk update multiple IP addresses."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     updated = await command_bus.dispatch(
@@ -188,6 +190,7 @@ async def bulk_delete_ip_addresses(
     body: BulkDeleteRequest,
     request: Request,
 ) -> BulkDeleteResponse:
+    """Bulk delete multiple IP addresses by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     deleted = await command_bus.dispatch(BulkDeleteIPAddressesCommand(ids=body.ids))
@@ -200,6 +203,7 @@ async def get_ip_address(
     ip_id: UUID,
     query_bus: QueryBus = Depends(_get_query_bus),  # noqa: B008
 ) -> IPAddressResponse:
+    """Retrieve a single IP address by ID."""
     result = await query_bus.dispatch(GetIPAddressQuery(ip_id=ip_id))
     return IPAddressResponse(**result.model_dump())
 
@@ -210,6 +214,7 @@ async def update_ip_address(
     body: UpdateIPAddressRequest,
     request: Request,
 ) -> IPAddressResponse:
+    """Partially update an IP address."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -225,6 +230,7 @@ async def change_ip_address_status(
     body: ChangeStatusRequest,
     request: Request,
 ) -> IPAddressResponse:
+    """Change the lifecycle status of an IP address."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     query_bus = _get_query_bus(request, session)
@@ -239,6 +245,7 @@ async def delete_ip_address(
     ip_id: UUID,
     request: Request,
 ) -> None:
+    """Delete an IP address by ID."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     await command_bus.dispatch(DeleteIPAddressCommand(ip_id=ip_id))
@@ -254,6 +261,7 @@ async def bulk_create_ip_addresses(
     body: list[CreateIPAddressRequest],
     request: Request,
 ) -> BulkCreateResponse:
+    """Bulk create multiple IP addresses."""
     session = _get_session(request)
     command_bus = _get_command_bus(request, session)
     ids = await command_bus.dispatch(

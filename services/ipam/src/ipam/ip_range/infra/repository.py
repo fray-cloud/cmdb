@@ -1,3 +1,5 @@
+"""PostgreSQL implementation of the IPRange read model repository."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -15,6 +17,8 @@ from ipam.shared.infra.query_helpers import _apply_advanced_filters
 
 
 class PostgresIPRangeReadModelRepository(IPRangeReadModelRepository):
+    """PostgreSQL-backed read model repository for IP range queries and projections."""
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
@@ -35,6 +39,7 @@ class PostgresIPRangeReadModelRepository(IPRangeReadModelRepository):
         await self._session.flush()
 
     async def find_by_id(self, entity_id: UUID) -> dict | None:
+        """Return an IP range dict by primary key, or None if not found or deleted."""
         model = await self._session.get(IPRangeReadModel, entity_id)
         if model is None or model.is_deleted:
             return None
@@ -50,6 +55,7 @@ class PostgresIPRangeReadModelRepository(IPRangeReadModelRepository):
         tag_slugs: list[str] | None = None,
         custom_field_filters: dict[str, str] | None = None,
     ) -> tuple[list[dict], int]:
+        """Return a paginated list of IP range records matching the given filters."""
         base = select(IPRangeReadModel).where(IPRangeReadModel.is_deleted == sa.false())
         filtered = _apply_advanced_filters(
             base,

@@ -1,3 +1,5 @@
+"""Abstract read model repository for IPAddress queries."""
+
 from abc import abstractmethod
 from uuid import UUID
 
@@ -5,6 +7,8 @@ from ipam.shared.query_utils import ReadModelRepository
 
 
 class IPAddressReadModelRepository(ReadModelRepository):
+    """Read-side repository interface for querying denormalized IP address data."""
+
     @abstractmethod
     async def exists_in_vrf(self, address: str, vrf_id: UUID | None) -> bool: ...
 

@@ -1,3 +1,5 @@
+"""IPAM service entry point — FastAPI application factory with lifespan management."""
+
 import asyncio
 import contextlib
 import logging
@@ -15,29 +17,22 @@ from shared.messaging.producer import KafkaEventProducer
 from shared.messaging.serialization import EventSerializer
 from strawberry.fastapi import GraphQLRouter
 
-from ipam.asn.domain.events import ASNCreated, ASNDeleted, ASNUpdated
-from ipam.fhrp_group.domain.events import FHRPGroupCreated, FHRPGroupDeleted, FHRPGroupUpdated
+from ipam.asn import ASNCreated, ASNDeleted, ASNUpdated
+from ipam.fhrp_group import FHRPGroupCreated, FHRPGroupDeleted, FHRPGroupUpdated
 from ipam.graphql.context import get_graphql_context
 from ipam.graphql.schema import schema
-from ipam.ip_address.domain.events import (
-    IPAddressCreated,
-    IPAddressDeleted,
-    IPAddressStatusChanged,
-    IPAddressUpdated,
-)
-from ipam.ip_range.domain.events import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
-from ipam.prefix.domain.events import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
-from ipam.rir.domain.events import RIRCreated, RIRDeleted, RIRUpdated
-from ipam.route_target.domain.events import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
+from ipam.ip_address import IPAddressCreated, IPAddressDeleted, IPAddressStatusChanged, IPAddressUpdated
+from ipam.ip_range import IPRangeCreated, IPRangeDeleted, IPRangeStatusChanged, IPRangeUpdated
+from ipam.prefix import PrefixCreated, PrefixDeleted, PrefixStatusChanged, PrefixUpdated
+from ipam.rir import RIRCreated, RIRDeleted, RIRUpdated
+from ipam.route_target import RouteTargetCreated, RouteTargetDeleted, RouteTargetUpdated
 from ipam.routers import ALL_ROUTERS
-from ipam.service_entity.domain.events import ServiceCreated, ServiceDeleted, ServiceUpdated
-from ipam.shared.cache import RedisCache
-from ipam.shared.config import Settings
-from ipam.shared.database import Database
+from ipam.service_entity import ServiceCreated, ServiceDeleted, ServiceUpdated
+from ipam.shared import Database, RedisCache, Settings
 from ipam.shared.event_projector import IPAMEventProjector
-from ipam.vlan.domain.events import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
-from ipam.vlan_group.domain.events import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
-from ipam.vrf.domain.events import VRFCreated, VRFDeleted, VRFUpdated
+from ipam.vlan import VLANCreated, VLANDeleted, VLANStatusChanged, VLANUpdated
+from ipam.vlan_group import VLANGroupCreated, VLANGroupDeleted, VLANGroupUpdated
+from ipam.vrf import VRFCreated, VRFDeleted, VRFUpdated
 
 logger = logging.getLogger(__name__)
 

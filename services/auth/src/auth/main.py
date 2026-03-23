@@ -1,3 +1,5 @@
+"""Auth service FastAPI application entry point."""
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -10,19 +12,8 @@ from shared.messaging.producer import KafkaEventProducer
 from shared.messaging.serialization import EventSerializer
 
 from auth.routers import api_token_router, auth_router, permission_router, role_router, user_router
-from auth.shared.config import Settings
-from auth.shared.database import Database
-from auth.shared.domain.events import (
-    RoleAssigned,
-    RoleRemoved,
-    TokenGenerated,
-    TokenRevoked,
-    UserCreated,
-    UserLocked,
-)
-from auth.shared.login_rate_limiter import LoginRateLimiter
-from auth.shared.security import BcryptPasswordService, JWTService
-from auth.shared.token_blacklist import RedisTokenBlacklist
+from auth.shared import BcryptPasswordService, Database, JWTService, LoginRateLimiter, RedisTokenBlacklist, Settings
+from auth.shared.domain import RoleAssigned, RoleRemoved, TokenGenerated, TokenRevoked, UserCreated, UserLocked
 
 
 @asynccontextmanager
