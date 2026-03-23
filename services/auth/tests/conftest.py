@@ -1,13 +1,16 @@
 from uuid import UUID
 
 import pytest
-from auth.domain.api_token import APIToken
-from auth.domain.group import Group
-from auth.domain.repository import APITokenRepository, GroupRepository, RoleRepository, UserRepository
-from auth.domain.role import Role
-from auth.domain.user import User
-from auth.infrastructure.config import Settings
-from auth.infrastructure.security import BcryptPasswordService, JWTService
+from auth.api_token.domain.api_token import APIToken
+from auth.api_token.domain.repository import APITokenRepository
+from auth.group.domain.group import Group
+from auth.group.domain.repository import GroupRepository
+from auth.role.domain.repository import RoleRepository
+from auth.role.domain.role import Role
+from auth.shared.config import Settings
+from auth.shared.security import BcryptPasswordService, JWTService
+from auth.user.domain.repository import UserRepository
+from auth.user.domain.user import User
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from shared.event.domain_event import DomainEvent

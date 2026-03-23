@@ -1,7 +1,7 @@
 """Auth Docker integration tests: real PostgreSQL via testcontainers.
 
 Verifies User CRUD with real database persistence.
-Marked with @pytest.mark.integration — requires Docker.
+Marked with @pytest.mark.integration -- requires Docker.
 """
 
 from __future__ import annotations
@@ -9,9 +9,9 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from auth.domain.user import User
-from auth.infrastructure.models import AuthBase
-from auth.infrastructure.user_repository import PostgresUserRepository
+from auth.shared.models import AuthBase
+from auth.user.domain.user import User
+from auth.user.infra.repository import PostgresUserRepository
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from testcontainers.postgres import PostgresContainer
